@@ -1,0 +1,112 @@
+Error checker 기능 및 비교하는 순서
+
+1. output file에 weight,cbm,pkg 값이 숫자가 아닐때
+ (output gen이지만, human error로 인해 변경되었을때)
+
+2. Input file에 값이 없을때 error (관심있는 column에 대해서만)
+
+3. output weight와 cbm total값, PKG 값이 input과 다를때 
+input 값과 output 값이 어떻게 다른지 비교 (아직 구현 안됨)
+
+4.
+
+
+input과 output을 비교하는 feature도 의미있지만,
+input에 넣을 data 자체를 실수하는 경우도 문제가 된다.
+
+
+
+
+0. 만들어둔 input format에 복붙한 결과(input)와 input excel data와(output) 비교하는 작업
+
+1. mail로받든, 여러개 data에 대한 excel로 받든,
+input 형식으로 뽑아내는 script로 
+
+
+
+
+
+###########작전############
+1. 메일을 그대로 붙여 넣을 input format을 만든다. 
+2. A1 cell에 메일 내용을 그대로 붙여 넣는다.
+3. format에 기입된 내용에 대해서 내용들을 gen하는 excel을 export한다.
+3-1 gen된 excel에 total sheet와 current sheet를 구분하여,
+total sheet에는 누적된 data를, current sheet에는 A1 cell에 저장된 data를 보여준다.
+4.total sheet와 ouput data를 비교하는 tool 이용
+
+total에도 넣을건지 말지 control bit format에 추가
+1이면 total excel 따로 만듬
+
+####EDI로 HBL 따는 법#####
+1. EDI정보가 있는 excel이 있어야겠네..
+2. 
+EDI가 아래와 같이 있으면, HBL 처음은 007로 시작
+CIGSINPS2206F007
+CIGSINPS2206F008
+CIGSINPS2206F009
+CIGSINPS2206F010
+CIGSINPS2206F011
+CIGSINPS2206F012
+CIGSINPS2206F013
+CIGSINPS2206F014
+
+
+# principle
+### input format file###
+1. 모든 column 뒤에 : 뒤에 값이 있어야 함.
+--> many_bl 만 빼면 됨
+2. 기호 제거 == 
+--> many_bl 만 빼면 됨
+
+### cargo result ###
+A열 : MBL
+B열 : Shipper (s/), Consignee(c/)
+O열 : 차대 개수 및 차대 정보
+S열 : total weight (혹은 T열과 반대)
+T열 : total CBM
+
+Q1. 차대번호 info 왜 따로 분리되는지?
+A1. error로 띄울테니 하나의 info에 맞게 넣어야 한다.
+
+#08-13 Todo list
+
+- cargo에서 error case에 대해 error message 연동하여 띄우기
+  1. data가 없을 때 : DONE
+  2. data가 잘렸을 때 : DONE
+  3. model,year,chassino 간 공백이 아닐 때, (이경우 1에 속하는지 확인하기) : DONE
+  4. BL 개수와 cnt 개수 다를때 : ing --> X 섞여있을경우 어려움, 안하는게 나음
+  5. column 위치 가져오기 : DONE
+
+# WARNING DESCRIPTION @ CARGO MANIFAST
+NO_FREIGHT_PREPAID : 차대정보가 cell에 잘려 있어, 사용불가능한 상태의 data, 밑에 있는 잘려진 data를 
+찾아서 올바르게 먼저 붙여야 한다.
+SHIP_CON_INFO : shipper name이나 consignee name 정보가 없을 경우, S/나 C/로 시작되는 data가 없음.
+NUM_OF_CAR : 1BL의 차 대수 정보가 없을 때 발생
+TOTAL_WEIGHT : total weight 정보가 없을 때 발생
+TOTAL_CBM : total CBM 정보가 없을 때 발생
+MISSING_INFO : 차대 정보중 ACID나 importer,exporter 등등의 정보가 없거나, 정보는 있는데 구분을 못하게
+잘못 기술되어 있는경우
+
+
+# 8-14 TODO list
+- mail format에서 1bl-multi cha 정보 뽑기 : DONE
+- one car one bl format DF로 정리하기 --> 따로 건들지 않기로
+- option을 두어 total excel도 따로 만드는 작업 : DONE
+1이면, 현재 mail format excel을 total에 append하고, 0이면 무시 (default 0)
+--> excel에서 작업하지 않고, 입력을 받게 한다.
+1이면, 합치고, 0이면 합치지 않는것으로
+
+# 8-16 TODO list
+- mail과 cargo 비교작업 시작하기
+뭘 어떻게 비교할건지?
+이건 정리가 필요함.
+input에 맞는 output이없음
+만약 왔다치면 작전은?
+- mail의 one car와 mul car를 각각 비교한다.
+- 무조건 total mail excel과 CARGO를 비교한다.
+- 무조건 total mail이 super set이다.
+- 이말은 CARGO에 있는 내용은 반드시 total mail에 있어야 한다. (왜냐하면 CARGO가 )
+
+# 08-20 TODO list
+- multi car에서는 ACID가 동일할 수 있다.
+

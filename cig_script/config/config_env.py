@@ -1,9 +1,17 @@
+import os
+from pathlib import Path
 # Excel path, name, sheet, row,column configuration
+
 
 class Config:
     @property
+    def parent_path(self):
+        parent_path = str(Path(os.getcwd()).parent)
+        return parent_path
+
+    @property
     def local_path(self):
-        local_path = 'C:/Users/USER/Desktop/CIG/data/'
+        local_path = self.parent_path + '/data/'
         return local_path
 
     @property

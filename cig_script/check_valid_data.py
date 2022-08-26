@@ -79,6 +79,28 @@ def _ERROR_compare_default_labeling(window):
     ety_working_sheet.place(x=10,y=150)
     ety_working_sheet.insert(0,working_sheet)
 
+def _ERROR_mail_con_acid_empty_default_labeling(window):
+    #    Error message 
+    lb_err_msg1 = Label(window, text="This ERROR message is triggered when Consignee or ACID info is empty in Input mail format!")
+    lb_err_msg1.place(x=10, y=10)
+    
+    lb_err_msg2 = Label(window, text="Pleas check below error location from Input mail format!")
+    lb_err_msg2.place(x=10, y=30)
+
+    lb_err_msg3 = Label(window, text="After fix these error, Please re-run!")
+    lb_err_msg3.place(x=10, y=50)
+
+    #    Current working directory path
+    working_xl_path = Config().mail_copy_in_name 
+
+    lb_err_working_dir = Label(window, text="Working Directory Path : ")
+    lb_err_working_dir.place(x=10, y=90)
+    
+    ety_working_path = tk.Entry(fg="gray19", bg="snow", width=60)
+    ety_working_path.place(x=10,y=110)
+    ety_working_path.insert(0,working_xl_path)
+
+
 def _ERROR_CARGO_default_labeling(window):
     #    Error message 
     lb_err_msg1 = Label(window, text="This ERROR message is triggered from CARGO MANIFAST!")
@@ -253,6 +275,56 @@ def _call_cargo_error_message_window(window,*err_dict):
     window.mainloop()
 
 
+def _call_error_input_con_acid_empty_message_window(window,*err_dict):
+    # label,entry location config
+    default_y_row = 190
+    lb_y_step_size = 30
+    lb_x_row = 10
+    ety_y_step_size = 60
+    ety_x_row = 10
+    
+    dict_num = len(err_dict)
+
+    for num in range(dict_num):
+        curr_err_dict = err_dict[num]
+        for err_cnt in curr_err_dict:
+            error_rows,error_col,error_cat = curr_err_dict[err_cnt]
+            if error_rows or error_col or error_cat:
+                #    N th Error Row Location
+                lb_y_row = default_y_row + lb_y_step_size
+
+                lb_err_error_row = Label(window, text= "Error Row Location : ")
+                lb_err_error_row.place(x=lb_x_row,y=lb_y_row)
+
+                ety_y_row = default_y_row + ety_y_step_size 
+
+                ety_error_row = tk.Entry(fg="gray19", bg="snow", width=20)
+                ety_error_row.place(x=ety_x_row,y=ety_y_row)
+                ety_error_row.insert(0,error_rows)
+
+                #  N th  Error Column Location
+                lb_err_error_col = Label(window, text= "Error Sheet : ")
+                lb_err_error_col.place(x=300, y=lb_y_row)
+                ety_error_col = tk.Entry(fg="gray19", bg="snow", width=20)
+                ety_error_col.place(x=300,y=ety_y_row)
+                ety_error_col.insert(0,error_col)
+
+                #  N th  Error Category Location
+                lb_err_error_val = Label(window, text= "Error Category : ")
+                lb_err_error_val.place(x=600, y=lb_y_row)
+                ety_error_val = tk.Entry(fg="red", bg="snow", width=20)
+                ety_error_val.place(x=600,y=ety_y_row)
+                ety_error_val.insert(0,error_cat)
+
+                default_y_row = ety_y_row
+            else:
+                continue
+    window.geometry('1000x400')
+    
+    window.mainloop()
+
+
+
 
 
 def _check_error_col(temp_df):
@@ -380,3 +452,12 @@ def call_error_message_compare_cargo_and_total(err_dict):
     window = _gen_error_win()
     _ERROR_compare_default_labeling(window)
     _call_cargo_error_message_window(window,loc_dict)
+
+
+def call_error_message_mail_con_acid_empty(err_dict):
+    loc_dict = {}
+    loc_dict = _find_err_info_loc(err_dict)
+    
+    window = _gen_error_win()
+    _ERROR_mail_con_acid_empty_default_labeling(window)
+    _call_error_input_con_acid_empty_message_window(window,loc_dict)

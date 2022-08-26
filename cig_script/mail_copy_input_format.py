@@ -1,10 +1,14 @@
 
+from audioop import mul
 import os
 import pandas as pd
 import numpy as np
+import re
 import json
 from config.config_env import Config
+# from cig_script.config.config_env import Config
 from datetime import datetime
+from check_valid_data import call_error_message_mail_con_acid_empty
 
 def _col_append(cols,mail_key):
     for value in mail_key:
@@ -47,14 +51,12 @@ def _get_column_from_dict(mail_dicts,cols):
                 print('MODEL, YR, CHASSINO might be something wrong!')
     return cols
 
-def _get_one_car_mail_in_format(mail_copy_in_path):
-    sheet = Config().one_car_sheet
-    df = pd.read_excel(mail_copy_in_path,sheet_name=sheet,header= None)
+def _get_one_car_mail_in_format(mail_copy_in_path,one_sheet):
+    df = pd.read_excel(mail_copy_in_path,sheet_name=one_sheet,header= None)
     return df
 
-def _get_mul_car_mail_in_format(mail_copy_in_path):
-    sheet = Config().mul_car_sheet
-    df = pd.read_excel(mail_copy_in_path,sheet_name=sheet,header= None)
+def _get_mul_car_mail_in_format(mail_copy_in_path,mul_sheet):
+    df = pd.read_excel(mail_copy_in_path,sheet_name=mul_sheet,header= None)
     return df
 
 def _get_ship_dict(df,ship_dict,ship_start_val,ship_start_idx,ship_end_idx,ship_cnt):
@@ -227,13 +229,14 @@ def _get_mul_car_info_df(df):
         
     return total_info_df
 
-def _get_mul_car_consignee_info(df):
+def _get_mul_car_consignee_info(df,mul_sheet):
     
     BL_cnt = 0
     con_df = pd.DataFrame()
     acid_df = pd.DataFrame()
     import_tax_df = pd.DataFrame()
     export_num_df = pd.DataFrame()
+    err_dict = {}
 
     first_col_df = df.loc[:,[0]]
     first_col_df = first_col_df.dropna()
@@ -242,6 +245,7 @@ def _get_mul_car_consignee_info(df):
     for idx,col in first_col_df.iterrows():
         col = col.str.upper()
         val = col[0]
+    
         if 'CONSIGNEE' in val:
             BL_cnt = BL_cnt + 1
             if idx >= 1:
@@ -249,13 +253,13 @@ def _get_mul_car_consignee_info(df):
                 cate = val
                 con_name = first_col_df.loc[consign_idx,:][0]
                 con_df = _get_df_mul_car_info(con_df,cate,con_name,BL_cnt)
-                    
+                
         elif 'ACID' in val:
                 acid_no_list = val.split(':')
                 cate = acid_no_list[0]
                 acid_no = acid_no_list[1].strip()
                 acid_df = _get_df_mul_car_info(acid_df,cate,acid_no,BL_cnt)
-        
+
         elif 'IMPORTER VAT NUMBER' in val or 'IMPORTER TAX NUMBER' in val:
                 import_tax_list = val.split(':')
                 cate = import_tax_list[0]
@@ -267,10 +271,16 @@ def _get_mul_car_consignee_info(df):
                 cate = export_num_list[0]
                 export_num = export_num_list[1].strip()
                 export_num_df = _get_df_mul_car_info(export_num_df,cate,export_num,BL_cnt)
+        
     
-    # multi car info extract
-    car_info_df = _get_mul_car_info_df(df)
-    total_df = _merge_df_description_info(con_df,acid_df,import_tax_df,export_num_df,car_info_df)
+    if con_df.empty :
+        print('test1')
+        err_dict = {1:(idx,mul_sheet,'MUL_CONSIGNEE_EMPTY')}
+        call_error_message_mail_con_acid_empty(err_dict)
+    else:
+        # multi car info extract
+        car_info_df = _get_mul_car_info_df(df)
+        total_df = _merge_df_description_info(con_df,acid_df,import_tax_df,export_num_df,car_info_df)
     
     return total_df
     
@@ -355,7 +365,7 @@ def _check_include_df(cur_df,tot_df,gen_time):
     tot_df = tot_df.copy().drop(columns=['gen_time'])
     
     cols = list(cur_df.columns)
-    
+
     cur_df = cur_df.astype(str)
     tot_df = tot_df.astype(str)
 
@@ -380,9 +390,11 @@ def _check_include_df(cur_df,tot_df,gen_time):
     return is_include,exist_dup,sub_df
 
 
-def _total_excel_update(one_car_df,mul_car_df):
+def _total_excel_update_temp(one_car_df,mul_car_df):
+    
     now = datetime.now()
     gen_time = now.strftime('%Y-%m-%d %H:%M')
+    
     
     tot_excel_from_mail = Config().tot_excel_from_mail
     tot_one_car_sheet = Config().total_one_car_sheet_name
@@ -405,7 +417,10 @@ def _total_excel_update(one_car_df,mul_car_df):
         elif _is_include_mul_car:
             # multi car already included, one car should be updated
             if exist_dup_one_car:
-                tot_one_car_df = pd.concat([tot_one_car_df,sub_one_car_df]).set_index('YR').reset_index()
+                if sub_one_car_df.empty:
+                    tot_one_car_df = tot_one_car_df.set_index('YR').reset_index()
+                else:
+                    tot_one_car_df = pd.concat([tot_one_car_df,sub_one_car_df]).set_index('YR').reset_index()
             else:
                 tot_one_car_df = pd.concat([tot_one_car_df,one_car_df]).set_index('YR').reset_index()
             
@@ -421,7 +436,10 @@ def _total_excel_update(one_car_df,mul_car_df):
         elif _is_include_one_car:
             # one car already included, multi car should be updated
             if exist_dup_mul_car:
-                tot_mul_car_df = pd.concat([tot_mul_car_df,sub_mul_car_df]).set_index('YR').reset_index()
+                if sub_mul_car_df.empty:
+                    tot_mul_car_df = tot_mul_car_df.set_index('YR').reset_index()
+                else :
+                    tot_mul_car_df = pd.concat([tot_mul_car_df,sub_mul_car_df]).set_index('YR').reset_index()
             else:
                 tot_mul_car_df = pd.concat([tot_mul_car_df,mul_car_df]).set_index('YR').reset_index()
             
@@ -467,8 +485,90 @@ def _total_excel_update(one_car_df,mul_car_df):
             _autowidth_excel(writer,tot_mul_car_sheet,mul_car_df)
     
 
+############################################
+def _excel_write(writer,tot_excel_from_mail,_result_dict,gen_time):
+    if _result_dict:
+        for _sheet,_car_df in _result_dict.items():
+            _car_df['gen_time'] = gen_time
+            tot_car_df = pd.read_excel(tot_excel_from_mail,sheet_name=_sheet)
+            
+            _is_include_car,exist_dup_car,sub_car_df = _check_include_df(_car_df,tot_car_df,gen_time)
+            
+            if _is_include_car:
+                pass
+            else:
+                # multi car already included, one car should be updated
+                if exist_dup_car:
+                    if sub_car_df.empty:
+                        tot_car_df = tot_car_df.set_index('YR').reset_index()
+                    else:
+                        tot_car_df = pd.concat([tot_car_df,sub_car_df]).set_index('YR').reset_index()
+                else:
+                    tot_car_df = pd.concat([tot_car_df,_car_df]).set_index('YR').reset_index()
+                
+                tot_car_df = tot_car_df.astype(str)
+                
+                if writer == 0:
+                    writer = pd.ExcelWriter(tot_excel_from_mail,engine='xlsxwriter')
+                    tot_car_df.to_excel(writer,_sheet,index=False)
+                    _autowidth_excel(writer,_sheet,tot_car_df)
+                else:
+                    tot_car_df.to_excel(writer,_sheet,index=False)
+                    _autowidth_excel(writer,_sheet,tot_car_df)
+    else: pass
+    return writer
 
-def _export_xl_mail_info(one_df,mul_df,total_option):
+
+
+def _total_excel_update(one_result_dict,mul_result_dict):
+    
+    now = datetime.now()
+    gen_time = now.strftime('%Y-%m-%d %H:%M')
+    tot_excel_from_mail = Config().tot_excel_from_mail
+    writer = 0
+    if os.path.isfile(tot_excel_from_mail):
+        writer = _excel_write(writer,tot_excel_from_mail,one_result_dict,gen_time)
+        writer = _excel_write(writer,tot_excel_from_mail,mul_result_dict,gen_time)
+        print('1')
+        writer.save()
+    
+        # else:
+        #     if exist_dup_one_car and exist_dup_mul_car:
+        #         tot_one_car_df = pd.concat([tot_one_car_df,sub_one_car_df]).set_index('YR').reset_index()
+        #         tot_mul_car_df = pd.concat([tot_mul_car_df,sub_mul_car_df]).set_index('YR').reset_index()
+        #     elif exist_dup_one_car:
+        #         tot_one_car_df = pd.concat([tot_one_car_df,sub_one_car_df]).set_index('YR').reset_index()
+        #         tot_mul_car_df = pd.concat([tot_mul_car_df,mul_car_df]).set_index('YR').reset_index()
+        #     elif exist_dup_mul_car:
+        #         tot_one_car_df = pd.concat([tot_one_car_df,one_car_df]).set_index('YR').reset_index()
+        #         tot_mul_car_df = pd.concat([tot_mul_car_df,sub_mul_car_df]).set_index('YR').reset_index()
+        #     else:
+        #         tot_one_car_df = pd.concat([tot_one_car_df,one_car_df]).set_index('YR').reset_index()
+        #         tot_mul_car_df = pd.concat([tot_mul_car_df,mul_car_df]).set_index('YR').reset_index()
+            
+        #     tot_one_car_df = tot_one_car_df.astype(str)
+        #     tot_mul_car_df = tot_mul_car_df.astype(str)
+            
+        #     with pd.ExcelWriter(tot_excel_from_mail,engine='xlsxwriter') as writer:
+        #         tot_one_car_df.to_excel(writer,tot_one_car_sheet,index=False)
+        #         _autowidth_excel(writer,tot_one_car_sheet,tot_one_car_df)
+        #         tot_mul_car_df.to_excel(writer,tot_mul_car_sheet,index=False)
+        #         _autowidth_excel(writer,tot_mul_car_sheet,tot_mul_car_df)
+    else:
+        with pd.ExcelWriter(tot_excel_from_mail,engine='xlsxwriter') as writer:
+            if one_result_dict:
+                for _sheet,_car_df in one_result_dict.items():
+                    _car_df.to_excel(writer,_sheet,index=False)
+                    _autowidth_excel(writer,_sheet,_car_df)
+
+            if mul_result_dict:
+                for _sheet,_car_df in mul_result_dict.items():
+                    _car_df.to_excel(writer,_sheet,index=False)
+                    _autowidth_excel(writer,_sheet,_car_df)
+    
+############################################
+
+def _export_xl_mail_info_temp(one_df,mul_df,total_option):
     filename = Config().export_xl_gen_name_from_mail
     cur_one_car_sheet = Config().cur_one_car_sheet
     cur_mul_car_sheet = Config().cur_mul_car_sheet
@@ -488,8 +588,32 @@ def _export_xl_mail_info(one_df,mul_df,total_option):
         _autowidth_excel(writer,cur_mul_car_sheet,mul_df)
 
 
-def _get_one_car_one_bl(mail_copy_in_path):
-    df = _get_one_car_mail_in_format(mail_copy_in_path)
+def _export_cur_xl_mail_info(one_result_dict,mul_result_dict):
+    filename = Config().export_xl_gen_name_from_mail
+    with pd.ExcelWriter(filename,engine='xlsxwriter') as writer:
+        if one_result_dict:
+            for _sheet,_car_df in one_result_dict.items():
+                _car_df.to_excel(writer,_sheet,index=False)
+                _autowidth_excel(writer,_sheet,_car_df)
+
+        if mul_result_dict:
+            for _sheet,_car_df in mul_result_dict.items():
+                _car_df.to_excel(writer,_sheet,index=False)
+                _autowidth_excel(writer,_sheet,_car_df)
+        
+
+def _export_tot_xl_mail_info(one_result_dict,mul_result_dict,total_option):
+    filename = Config().export_xl_gen_name_from_mail
+
+    total_option = total_option.upper()
+
+    if total_option in ['1', 'Y','YES']:
+        _total_excel_update(one_result_dict,mul_result_dict)
+    else:
+        pass
+
+def _get_one_car_one_bl(mail_copy_in_path,one_sheet):
+    df = _get_one_car_mail_in_format(mail_copy_in_path,one_sheet)
     df = _remove_NBSP_df(df)
     
     ship_dict =  _get_one_car_shipper_info(df)
@@ -497,27 +621,70 @@ def _get_one_car_one_bl(mail_copy_in_path):
     mail_df = _get_df_one_car_mail_info(BL_cnt,ship_dict,con_dict,chassi_dict,acid_dict,import_dict,exp_dict)
     return mail_df
 
-def _get_mul_car_one_bl(mail_copy_in_path):
-    df = _get_mul_car_mail_in_format(mail_copy_in_path)
+def _get_mul_car_one_bl(mail_copy_in_path,mul_sheet):
+    df = _get_mul_car_mail_in_format(mail_copy_in_path,mul_sheet)
     df = _remove_NBSP_df(df)
 
     ship_dict = _get_mul_car_shipper_info(df)
-    df = _get_mul_car_consignee_info(df)
+    df = _get_mul_car_consignee_info(df,mul_sheet)
     return df
 
+def _get_all_sheet_from_mail(mail_copy_in_path,one_sheet_list,mul_sheet_list):
+    df = pd.read_excel(mail_copy_in_path,sheet_name=None,header= None)
+    sheet_list = list(df.keys())
+    for sheet in sheet_list:
+        mul_sheet = re.search('\w+_MUL',sheet)
+        if mul_sheet:
+            mul_sheet_list.append(sheet)
+        else:
+            one_sheet_list.append(sheet)
+
+    return one_sheet_list,mul_sheet_list
+
+def _get_one_mail_dict(mail_copy_in_path,one_result_dict,one_sheet_list):
+    for one_sheet in one_sheet_list:
+        one_car_one_bl_df = _get_one_car_one_bl(mail_copy_in_path,one_sheet)
+        if one_car_one_bl_df.empty :
+            print('ONE CAR ONE BL info is EMPTY! : ', one_sheet)
+        else:
+            one_result_dict.update({one_sheet:one_car_one_bl_df})
+    return one_result_dict
+
+def _get_mul_mail_dict(mail_copy_in_path,mul_result_dict,mul_sheet_list):
+    for mul_sheet in mul_sheet_list:
+        mul_car_one_bl_df = _get_mul_car_one_bl(mail_copy_in_path,mul_sheet)
+        if mul_car_one_bl_df.empty:
+            print('MULTI CAR ONE BL info is EMPTY! : ', mul_sheet)
+        else:
+            mul_result_dict.update({mul_sheet:mul_car_one_bl_df})
+    return mul_result_dict
+
+
 def get_mail_in_format(mail_copy_in_path):
-    
-    one_car_one_bl_df = _get_one_car_one_bl(mail_copy_in_path)
-    mul_car_one_bl_df = _get_mul_car_one_bl(mail_copy_in_path)
+    mul_sheet_list = []
+    one_sheet_list = []
+    one_result_dict = {}
+    mul_result_dict = {}
 
-    if one_car_one_bl_df.empty :
-        print('one car one bl info is EMPTY!')
-    elif mul_car_one_bl_df.empty :
-        print('multi car one bl info is EMPTY!')
+    one_sheet_list,mul_sheet_list = _get_all_sheet_from_mail(mail_copy_in_path,one_sheet_list,mul_sheet_list)
+
+    print('Do you want to merge current mail info in TOTAL sheet?')
+    total_option = input('1 : Y(Yes) or  0: N(No) : ')
+
+    if one_sheet_list and mul_sheet_list:
+        one_result_dict = _get_one_mail_dict(mail_copy_in_path,one_result_dict,one_sheet_list)
+        mul_result_dict = _get_mul_mail_dict(mail_copy_in_path,mul_result_dict,mul_sheet_list)
+    elif one_sheet_list:
+        one_result_dict = _get_one_mail_dict(mail_copy_in_path,one_result_dict,one_sheet_list)
+    elif mul_sheet_list:
+        mul_result_dict = _get_mul_mail_dict(mail_copy_in_path,mul_result_dict,mul_sheet_list)
     else:
-        print("Both info Parsing from mail are SUCCESSFUL !")
+        pass
+    
+    _export_tot_xl_mail_info(one_result_dict,mul_result_dict,total_option)
+    _export_cur_xl_mail_info(one_result_dict,mul_result_dict)
 
-        print('Do you want to merge current mail info in TOTAL sheet?')
-        total_option = input('1 : Y(Yes) or  0: N(No) : ')
-        
-        _export_xl_mail_info(one_car_one_bl_df,mul_car_one_bl_df,total_option)
+
+            
+
+    

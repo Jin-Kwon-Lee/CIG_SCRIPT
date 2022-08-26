@@ -13,12 +13,12 @@ def main() :
         print('INPUT FORMAT EXCEL PATH is not found !')
 
 
-    if os.path.isfile(Config().cargo_path):
-        get_cargo_result_df(Config().cargo_path)
-    else:
-        print('CARGO ,EXCEL PATH is not found !')
+    # if os.path.isfile(Config().cargo_path):
+    #     get_cargo_result_df(Config().cargo_path)
+    # else:
+    #     print('CARGO ,EXCEL PATH is not found !')
     
-    compare_total_and_cargo()
+    # compare_total_and_cargo()
 
 if __name__ == "__main__":
     main()

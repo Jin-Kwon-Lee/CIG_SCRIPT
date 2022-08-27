@@ -389,103 +389,6 @@ def _check_include_df(cur_df,tot_df,gen_time):
     
     return is_include,exist_dup,sub_df
 
-
-def _total_excel_update_temp(one_car_df,mul_car_df):
-    
-    now = datetime.now()
-    gen_time = now.strftime('%Y-%m-%d %H:%M')
-    
-    
-    tot_excel_from_mail = Config().tot_excel_from_mail
-    tot_one_car_sheet = Config().total_one_car_sheet_name
-    tot_mul_car_sheet = Config().total_mul_car_sheet_name
-    
-    one_car_df['gen_time'] = gen_time
-    mul_car_df['gen_time'] = gen_time
-    
-
-    if os.path.isfile(tot_excel_from_mail):
-        tot_one_car_df = pd.read_excel(tot_excel_from_mail,sheet_name=tot_one_car_sheet)
-        tot_mul_car_df = pd.read_excel(tot_excel_from_mail,sheet_name=tot_mul_car_sheet)
-        
-        _is_include_one_car,exist_dup_one_car,sub_one_car_df = _check_include_df(one_car_df,tot_one_car_df,gen_time)
-        _is_include_mul_car,exist_dup_mul_car,sub_mul_car_df = _check_include_df(mul_car_df,tot_mul_car_df,gen_time)
-        
-        if _is_include_one_car and _is_include_mul_car:
-            pass
-            # both already included.
-        elif _is_include_mul_car:
-            # multi car already included, one car should be updated
-            if exist_dup_one_car:
-                if sub_one_car_df.empty:
-                    tot_one_car_df = tot_one_car_df.set_index('YR').reset_index()
-                else:
-                    tot_one_car_df = pd.concat([tot_one_car_df,sub_one_car_df]).set_index('YR').reset_index()
-            else:
-                tot_one_car_df = pd.concat([tot_one_car_df,one_car_df]).set_index('YR').reset_index()
-            
-            tot_one_car_df = tot_one_car_df.astype(str)
-            tot_mul_car_df = tot_mul_car_df.astype(str)
-            
-            with pd.ExcelWriter(tot_excel_from_mail,engine='xlsxwriter') as writer:
-                tot_one_car_df.to_excel(writer,tot_one_car_sheet,index=False)
-                _autowidth_excel(writer,tot_one_car_sheet,tot_one_car_df)
-                tot_mul_car_df.to_excel(writer,tot_mul_car_sheet,index=False)
-                _autowidth_excel(writer,tot_mul_car_sheet,tot_mul_car_df)
-                
-        elif _is_include_one_car:
-            # one car already included, multi car should be updated
-            if exist_dup_mul_car:
-                if sub_mul_car_df.empty:
-                    tot_mul_car_df = tot_mul_car_df.set_index('YR').reset_index()
-                else :
-                    tot_mul_car_df = pd.concat([tot_mul_car_df,sub_mul_car_df]).set_index('YR').reset_index()
-            else:
-                tot_mul_car_df = pd.concat([tot_mul_car_df,mul_car_df]).set_index('YR').reset_index()
-            
-            tot_one_car_df = tot_one_car_df.astype(str)
-            tot_mul_car_df = tot_mul_car_df.astype(str)
-            
-            with pd.ExcelWriter(tot_excel_from_mail,engine='xlsxwriter') as writer:
-                tot_one_car_df.to_excel(writer,tot_one_car_sheet,index=False)
-                _autowidth_excel(writer,tot_one_car_sheet,tot_one_car_df)
-                tot_mul_car_df.to_excel(writer,tot_mul_car_sheet,index=False)
-                _autowidth_excel(writer,tot_mul_car_sheet,tot_mul_car_df)
-            
-        else:
-            if exist_dup_one_car and exist_dup_mul_car:
-                tot_one_car_df = pd.concat([tot_one_car_df,sub_one_car_df]).set_index('YR').reset_index()
-                tot_mul_car_df = pd.concat([tot_mul_car_df,sub_mul_car_df]).set_index('YR').reset_index()
-            elif exist_dup_one_car:
-                tot_one_car_df = pd.concat([tot_one_car_df,sub_one_car_df]).set_index('YR').reset_index()
-                tot_mul_car_df = pd.concat([tot_mul_car_df,mul_car_df]).set_index('YR').reset_index()
-            elif exist_dup_mul_car:
-                tot_one_car_df = pd.concat([tot_one_car_df,one_car_df]).set_index('YR').reset_index()
-                tot_mul_car_df = pd.concat([tot_mul_car_df,sub_mul_car_df]).set_index('YR').reset_index()
-            else:
-                tot_one_car_df = pd.concat([tot_one_car_df,one_car_df]).set_index('YR').reset_index()
-                tot_mul_car_df = pd.concat([tot_mul_car_df,mul_car_df]).set_index('YR').reset_index()
-            
-            tot_one_car_df = tot_one_car_df.astype(str)
-            tot_mul_car_df = tot_mul_car_df.astype(str)
-            
-            with pd.ExcelWriter(tot_excel_from_mail,engine='xlsxwriter') as writer:
-                tot_one_car_df.to_excel(writer,tot_one_car_sheet,index=False)
-                _autowidth_excel(writer,tot_one_car_sheet,tot_one_car_df)
-                tot_mul_car_df.to_excel(writer,tot_mul_car_sheet,index=False)
-                _autowidth_excel(writer,tot_mul_car_sheet,tot_mul_car_df)
-        
-    else:
-        with pd.ExcelWriter(tot_excel_from_mail,engine='xlsxwriter') as writer:
-            
-            one_car_df.to_excel(writer,tot_one_car_sheet,index=False)
-            _autowidth_excel(writer,tot_one_car_sheet,one_car_df)
-
-            mul_car_df.to_excel(writer,tot_mul_car_sheet,index=False)
-            _autowidth_excel(writer,tot_mul_car_sheet,mul_car_df)
-    
-
-############################################
 def _excel_write(writer,tot_excel_from_mail,_result_dict,gen_time):
     if _result_dict:
         for _sheet,_car_df in _result_dict.items():
@@ -517,8 +420,6 @@ def _excel_write(writer,tot_excel_from_mail,_result_dict,gen_time):
                     _autowidth_excel(writer,_sheet,tot_car_df)
     else: pass
     return writer
-
-
 
 def _total_excel_update(one_result_dict,mul_result_dict):
     

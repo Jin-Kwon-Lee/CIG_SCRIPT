@@ -93,8 +93,9 @@ def _tot_cbm_info(err_row_list,tot_cbm_df,sub_df,col,idx,cnt):
     return tot_cbm_df,err_row_list
 
 def _check_info_if_sliced(err_row_list,cha_info,idx):
-    p = re.findall('FREIGHT PREPAID.*',cha_info)
-    if not p:
+    p_1 = re.findall('FREIGHT PREPAID.*',cha_info)
+    p_2 = re.findall('FREIGHT COLLECT.*',cha_info)
+    if not p_1 and not p_2:
         err_row_list.append(idx+1)
     return err_row_list
 
@@ -311,7 +312,7 @@ def _get_info_cargo_result(df):
      
     if err_no_prepaid_list:
         err_col = _int2alpha(cha_info_col)
-        err_no_prepaid_dict = {1:(err_no_prepaid_list,err_col,'NO_FREIGHT_PREPAID')}
+        err_no_prepaid_dict = {1:(err_no_prepaid_list,err_col,'NO_FREIGHT_PREPAID_OR_COLLECT')}
         call_error_message_from_cargo(err_no_prepaid_dict)
     else:
         ## assume that all master bl exists.

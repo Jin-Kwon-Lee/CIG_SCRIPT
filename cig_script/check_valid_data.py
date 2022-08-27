@@ -118,7 +118,7 @@ def _ERROR_CARGO_default_labeling(window):
     lb_err_working_dir = Label(window, text="Working Directory Path : ")
     lb_err_working_dir.place(x=10, y=90)
     
-    ety_working_path = tk.Entry(fg="gray19", bg="snow", width=60)
+    ety_working_path = tk.Entry(fg="gray19", bg="snow", width=80)
     ety_working_path.place(x=10,y=110)
     ety_working_path.insert(0,working_xl_path)
 
@@ -249,7 +249,7 @@ def _call_cargo_error_message_window(window,*err_dict):
 
                 ety_y_row = default_y_row + ety_y_step_size 
 
-                ety_error_row = tk.Entry(fg="gray19", bg="snow", width=70)
+                ety_error_row = tk.Entry(fg="gray19", bg="snow", width=80)
                 ety_error_row.place(x=ety_x_row,y=ety_y_row)
                 ety_error_row.insert(0,error_rows)
 
@@ -263,7 +263,7 @@ def _call_cargo_error_message_window(window,*err_dict):
                 #  N th  Error Category Location
                 lb_err_error_val = Label(window, text= "Error Category : ")
                 lb_err_error_val.place(x=800, y=lb_y_row)
-                ety_error_val = tk.Entry(fg="red", bg="snow", width=20)
+                ety_error_val = tk.Entry(fg="red", bg="snow", width=30)
                 ety_error_val.place(x=800,y=ety_y_row)
                 ety_error_val.insert(0,error_cat)
 

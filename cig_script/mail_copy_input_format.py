@@ -411,6 +411,7 @@ def _excel_write(writer,tot_excel_from_mail,_result_dict,gen_time):
                 
                 if writer == 0:
                     writer = pd.ExcelWriter(tot_excel_from_mail,engine='xlsxwriter')
+                    print(type(writer))
                     tot_car_df.to_excel(writer,_sheet,index=False)
                     _autowidth_excel(writer,_sheet,tot_car_df)
                 else:
@@ -429,7 +430,8 @@ def _total_excel_update(one_result_dict,mul_result_dict):
     if os.path.isfile(tot_excel_from_mail):
         writer = _excel_write(writer,tot_excel_from_mail,one_result_dict,gen_time)
         writer = _excel_write(writer,tot_excel_from_mail,mul_result_dict,gen_time)
-        writer.save()
+        if type(writer) == 'pandas.io.excel._xlsxwriter.XlsxWriter':
+            writer.save()
     else:
         with pd.ExcelWriter(tot_excel_from_mail,engine='xlsxwriter') as writer:
             if one_result_dict:

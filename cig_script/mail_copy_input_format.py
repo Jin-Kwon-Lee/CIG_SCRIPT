@@ -274,7 +274,6 @@ def _get_mul_car_consignee_info(df,mul_sheet):
         
     
     if con_df.empty :
-        print('test1')
         err_dict = {1:(idx,mul_sheet,'MUL_CONSIGNEE_EMPTY')}
         call_error_message_mail_con_acid_empty(err_dict)
     else:
@@ -359,7 +358,6 @@ def _autowidth_excel(writer,sheet_name,df):
 
 def _check_include_df(cur_df,tot_df,gen_time):
     exist_dup = False
-    
     cur_df = cur_df.set_index('YR').reset_index()
     cur_df = cur_df.copy().drop(columns=['gen_time'])
     tot_df = tot_df.copy().drop(columns=['gen_time'])
@@ -418,7 +416,8 @@ def _excel_write(writer,tot_excel_from_mail,_result_dict,gen_time):
                 else:
                     tot_car_df.to_excel(writer,_sheet,index=False)
                     _autowidth_excel(writer,_sheet,tot_car_df)
-    else: pass
+    else: 
+        pass
     return writer
 
 def _total_excel_update(one_result_dict,mul_result_dict):
@@ -430,64 +429,20 @@ def _total_excel_update(one_result_dict,mul_result_dict):
     if os.path.isfile(tot_excel_from_mail):
         writer = _excel_write(writer,tot_excel_from_mail,one_result_dict,gen_time)
         writer = _excel_write(writer,tot_excel_from_mail,mul_result_dict,gen_time)
-        print('1')
         writer.save()
-    
-        # else:
-        #     if exist_dup_one_car and exist_dup_mul_car:
-        #         tot_one_car_df = pd.concat([tot_one_car_df,sub_one_car_df]).set_index('YR').reset_index()
-        #         tot_mul_car_df = pd.concat([tot_mul_car_df,sub_mul_car_df]).set_index('YR').reset_index()
-        #     elif exist_dup_one_car:
-        #         tot_one_car_df = pd.concat([tot_one_car_df,sub_one_car_df]).set_index('YR').reset_index()
-        #         tot_mul_car_df = pd.concat([tot_mul_car_df,mul_car_df]).set_index('YR').reset_index()
-        #     elif exist_dup_mul_car:
-        #         tot_one_car_df = pd.concat([tot_one_car_df,one_car_df]).set_index('YR').reset_index()
-        #         tot_mul_car_df = pd.concat([tot_mul_car_df,sub_mul_car_df]).set_index('YR').reset_index()
-        #     else:
-        #         tot_one_car_df = pd.concat([tot_one_car_df,one_car_df]).set_index('YR').reset_index()
-        #         tot_mul_car_df = pd.concat([tot_mul_car_df,mul_car_df]).set_index('YR').reset_index()
-            
-        #     tot_one_car_df = tot_one_car_df.astype(str)
-        #     tot_mul_car_df = tot_mul_car_df.astype(str)
-            
-        #     with pd.ExcelWriter(tot_excel_from_mail,engine='xlsxwriter') as writer:
-        #         tot_one_car_df.to_excel(writer,tot_one_car_sheet,index=False)
-        #         _autowidth_excel(writer,tot_one_car_sheet,tot_one_car_df)
-        #         tot_mul_car_df.to_excel(writer,tot_mul_car_sheet,index=False)
-        #         _autowidth_excel(writer,tot_mul_car_sheet,tot_mul_car_df)
     else:
         with pd.ExcelWriter(tot_excel_from_mail,engine='xlsxwriter') as writer:
             if one_result_dict:
                 for _sheet,_car_df in one_result_dict.items():
+                    _car_df['gen_time'] = gen_time
                     _car_df.to_excel(writer,_sheet,index=False)
                     _autowidth_excel(writer,_sheet,_car_df)
 
             if mul_result_dict:
                 for _sheet,_car_df in mul_result_dict.items():
+                    _car_df['gen_time'] = gen_time
                     _car_df.to_excel(writer,_sheet,index=False)
                     _autowidth_excel(writer,_sheet,_car_df)
-    
-############################################
-
-def _export_xl_mail_info_temp(one_df,mul_df,total_option):
-    filename = Config().export_xl_gen_name_from_mail
-    cur_one_car_sheet = Config().cur_one_car_sheet
-    cur_mul_car_sheet = Config().cur_mul_car_sheet
-    
-    total_option = total_option.upper()
-
-    if total_option in ['1', 'Y','YES']:
-        _total_excel_update(one_df,mul_df)
-    else:
-        pass
-
-    with pd.ExcelWriter(filename,engine='xlsxwriter') as writer:
-        one_df.to_excel(writer,cur_one_car_sheet,index=False)
-        _autowidth_excel(writer,cur_one_car_sheet,one_df)
-
-        mul_df.to_excel(writer,cur_mul_car_sheet,index=False)
-        _autowidth_excel(writer,cur_mul_car_sheet,mul_df)
-
 
 def _export_cur_xl_mail_info(one_result_dict,mul_result_dict):
     filename = Config().export_xl_gen_name_from_mail

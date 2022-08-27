@@ -16,7 +16,7 @@ class Config:
 
     @property
     def mail_copy_in_name(self):
-        mail_copy_in_name = 'input_mail/mail_copy_in_format_22_08' # + self.excel_gen_date
+        mail_copy_in_name = 'input_mail/mail_copy_in_format' # + self.excel_gen_date
         return mail_copy_in_name
 
     @property
@@ -66,7 +66,7 @@ class Config:
 
     @property
     def cargo_path(self):
-        cargo_path = self.local_path + 'output_cargo/CARGO_MANIFAST_22_08.xls'
+        cargo_path = self.local_path + 'output_cargo/CARGO_MANIFAST.xls'
         return cargo_path
     
     @property

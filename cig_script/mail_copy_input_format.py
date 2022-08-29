@@ -1,12 +1,10 @@
 
-from audioop import mul
 import os
 import pandas as pd
 import numpy as np
 import re
 import json
 from config.config_env import Config
-# from cig_script.config.config_env import Config
 from datetime import datetime
 from check_valid_data import call_error_message_mail_con_acid_empty
 

@@ -147,8 +147,26 @@ def _get_dict_description_info(dic,descript_list,BL_cnt):
         dic.update({BL_cnt:{'MODEL':cha_name,'YR':cha_year,'CHASSINO':cha_no}})
     return dic
 
-def _get_df_mul_car_info(con_df,cate,val,cnt):
+def _get_dict_consignee_info(dic,descript_list,BL_cnt):
+    if type(descript_list) == list:
+        descript_cate = descript_list[0].strip()
+        descript_cate = str(re.match('\w+\s?_?\w+',descript_cate)[0])
+        descript_val = descript_list[1].strip()
+        dic.update({BL_cnt:{descript_cate:descript_val}})
+    return dic
+
+
+def _get_df_mul_car_info(_df,cate,val,cnt):
     dic = {}
+    dic.update({cate:{cnt:val}})
+    df = pd.DataFrame.from_dict(data=dic)
+    
+    _df = pd.concat([_df,df])
+    return _df
+
+def _get_df_mul_car_con_info(con_df,cate,val,cnt):
+    dic = {}
+    cate = str(re.match('\w+\s?_?\w+',cate)[0])
     dic.update({cate:{cnt:val}})
     df = pd.DataFrame.from_dict(data=dic)
     
@@ -250,7 +268,7 @@ def _get_mul_car_consignee_info(df,mul_sheet):
                 consign_idx = idx + 1
                 cate = val
                 con_name = first_col_df.loc[consign_idx,:][0]
-                con_df = _get_df_mul_car_info(con_df,cate,con_name,BL_cnt)
+                con_df = _get_df_mul_car_con_info(con_df,cate,con_name,BL_cnt)
                 
         elif 'ACID' in val:
                 acid_no_list = val.split(':')
@@ -260,13 +278,15 @@ def _get_mul_car_consignee_info(df,mul_sheet):
 
         elif 'IMPORTER VAT NUMBER' in val or 'IMPORTER TAX NUMBER' in val:
                 import_tax_list = val.split(':')
-                cate = import_tax_list[0]
+                # cate = import_tax_list[0]
+                cate = 'IMPORTER TAX NUMBER'
                 import_tax = import_tax_list[1].strip()
                 import_tax_df = _get_df_mul_car_info(import_tax_df,cate,import_tax,BL_cnt)
         
         elif 'EXPORTER REGISTRATION NUMBER' in val:
                 export_num_list = val.split(':')
-                cate = export_num_list[0]
+                # cate = export_num_list[0]
+                cate = 'FREIGHT FORWARDER ID'
                 export_num = export_num_list[1].strip()
                 export_num_df = _get_df_mul_car_info(export_num_df,cate,export_num,BL_cnt)
         
@@ -305,8 +325,7 @@ def _get_one_car_consignee_info(df):
                 chassi_no_idx = idx - 1
                 chassi_no = df.loc[chassi_no_idx,:][0]
                 chassi_dict = _get_dict_description_info(chassi_dict,chassi_no,BL_cnt)
-            con_dict = _get_dict_description_info(con_dict,con_name,BL_cnt)
-
+            con_dict = _get_dict_consignee_info(con_dict,con_name,BL_cnt)
         elif 'ACID' in val:
             acid_idx = idx
             acid_no = val.split(':')
@@ -366,6 +385,7 @@ def _check_include_df(cur_df,tot_df,gen_time):
     tot_df = tot_df.astype(str)
 
     common_df = pd.merge(cur_df,tot_df, on=cols)
+
     is_include = cur_df.equals(common_df)  
     
     cur_idx_set = set(cur_df.index)
@@ -385,53 +405,116 @@ def _check_include_df(cur_df,tot_df,gen_time):
     
     return is_include,exist_dup,sub_df
 
-def _excel_write(writer,tot_excel_from_mail,_result_dict,gen_time):
-    if _result_dict:
-        for _sheet,_car_df in _result_dict.items():
+
+def _write_or_update_excel(_file_path,_sheet,_df):
+    _df = _df.astype(str)
+    if not os.path.exists(_file_path):
+        with pd.ExcelWriter(_file_path, mode= 'w') as writer: 
+            _df.to_excel(writer,_sheet,index=False)
+            _autowidth_excel(writer,_sheet,_df)
+    else:
+        with pd.ExcelWriter(_file_path, mode= 'a',engine='openpyxl',if_sheet_exists='overlay') as writer: 
+            _df.to_excel(writer,_sheet,index=False)
+
+def _excel_total_sheet_update(tot_excel_from_mail,one_result_dict,mul_result_dict,gen_time):
+    tot_mail_sheet = Config().total_mail_sheet_name
+    total_sheet_df = pd.read_excel(tot_excel_from_mail,sheet_name=tot_mail_sheet)
+    
+    if one_result_dict:
+        for _sheet,_car_df in one_result_dict.items():
             _car_df['gen_time'] = gen_time
-            tot_car_df = pd.read_excel(tot_excel_from_mail,sheet_name=_sheet)
-            
-            _is_include_car,exist_dup_car,sub_car_df = _check_include_df(_car_df,tot_car_df,gen_time)
-            
+            _car_df['SHEET'] = _sheet
+
+            _is_include_car,exist_dup_car,sub_car_df = _check_include_df(_car_df,total_sheet_df,gen_time)
             if _is_include_car:
                 pass
             else:
-                # multi car already included, one car should be updated
                 if exist_dup_car:
                     if sub_car_df.empty:
-                        tot_car_df = tot_car_df.set_index('YR').reset_index()
+                        total_sheet_df = total_sheet_df.set_index('YR').reset_index()
                     else:
-                        tot_car_df = pd.concat([tot_car_df,sub_car_df]).set_index('YR').reset_index()
+                        total_sheet_df = pd.concat([total_sheet_df,sub_car_df]).set_index('YR').reset_index()
                 else:
-                    tot_car_df = pd.concat([tot_car_df,_car_df]).set_index('YR').reset_index()
-                
-                tot_car_df = tot_car_df.astype(str)
-                
-                if writer == 0:
-                    writer = pd.ExcelWriter(tot_excel_from_mail,engine='xlsxwriter')
-                    print(type(writer))
-                    tot_car_df.to_excel(writer,_sheet,index=False)
-                    _autowidth_excel(writer,_sheet,tot_car_df)
+                    total_sheet_df = pd.concat([total_sheet_df,_car_df]).set_index('YR').reset_index()
+
+                _write_or_update_excel(tot_excel_from_mail,tot_mail_sheet,total_sheet_df)
+
+    if mul_result_dict:
+        for _sheet,_car_df in mul_result_dict.items():
+            _car_df['gen_time'] = gen_time
+            _car_df['SHEET'] = _sheet
+
+            _is_include_car,exist_dup_car,sub_car_df = _check_include_df(_car_df,total_sheet_df,gen_time)
+
+            if _is_include_car:
+                pass
+            else:
+                if exist_dup_car:
+                    if sub_car_df.empty:
+                        total_sheet_df = total_sheet_df.set_index('YR').reset_index()
+                    else:
+                        total_sheet_df = pd.concat([total_sheet_df,sub_car_df]).set_index('YR').reset_index()
                 else:
-                    tot_car_df.to_excel(writer,_sheet,index=False)
-                    _autowidth_excel(writer,_sheet,tot_car_df)
-    else: 
-        pass
-    return writer
+                    total_sheet_df = pd.concat([total_sheet_df,_car_df]).set_index('YR').reset_index()
+
+                _write_or_update_excel(tot_excel_from_mail,tot_mail_sheet,total_sheet_df)
+
+
+def _excel_write(tot_excel_from_mail,_result_dict,gen_time):
+    if _result_dict:
+        for _sheet,_car_df in _result_dict.items():
+            _car_df['gen_time'] = gen_time
+            try:
+                tot_sub_car_df = pd.read_excel(tot_excel_from_mail,sheet_name=_sheet)
+            except:
+                cols = _car_df.columns
+                tot_sub_car_df = pd.DataFrame(columns=cols)
+    
+            _is_include_car,exist_dup_car,sub_car_df = _check_include_df(_car_df,tot_sub_car_df,gen_time)
+            if _is_include_car:
+                pass
+            else:
+                if exist_dup_car:
+                    if sub_car_df.empty:
+                        tot_sub_car_df = tot_sub_car_df.set_index('YR').reset_index()
+                    else:
+                        tot_sub_car_df = pd.concat([tot_sub_car_df,sub_car_df]).set_index('YR').reset_index()
+                else:
+                    tot_sub_car_df = pd.concat([tot_sub_car_df,_car_df]).set_index('YR').reset_index()
+
+                _write_or_update_excel(tot_excel_from_mail,_sheet,tot_sub_car_df)
+
 
 def _total_excel_update(one_result_dict,mul_result_dict):
     
     now = datetime.now()
     gen_time = now.strftime('%Y-%m-%d %H:%M')
     tot_excel_from_mail = Config().tot_excel_from_mail
-    writer = 0
+    tot_mail_sheet = Config().total_mail_sheet_name
+
     if os.path.isfile(tot_excel_from_mail):
-        writer = _excel_write(writer,tot_excel_from_mail,one_result_dict,gen_time)
-        writer = _excel_write(writer,tot_excel_from_mail,mul_result_dict,gen_time)
-        if type(writer) == 'pandas.io.excel._xlsxwriter.XlsxWriter':
-            writer.save()
+        _excel_total_sheet_update(tot_excel_from_mail,one_result_dict,mul_result_dict,gen_time)
+        _excel_write(tot_excel_from_mail,one_result_dict,gen_time)
+        _excel_write(tot_excel_from_mail,mul_result_dict,gen_time)
+
     else:
-        with pd.ExcelWriter(tot_excel_from_mail,engine='xlsxwriter') as writer:
+        total_sheet_df = pd.DataFrame()
+        if one_result_dict:
+            for _sheet,_car_df in one_result_dict.items():
+                _car_df['SHEET'] = _sheet
+                total_sheet_df = pd.concat([total_sheet_df,_car_df])
+                total_sheet_df['gen_time'] = gen_time
+                
+        if mul_result_dict:
+            for _sheet,_car_df in mul_result_dict.items():
+                _car_df['SHEET'] = _sheet
+                total_sheet_df = pd.concat([total_sheet_df,_car_df])
+                total_sheet_df['gen_time'] = gen_time
+
+        with pd.ExcelWriter(tot_excel_from_mail) as writer:
+            total_sheet_df.to_excel(writer,tot_mail_sheet,index=False)
+            _autowidth_excel(writer,tot_mail_sheet,total_sheet_df)
+
             if one_result_dict:
                 for _sheet,_car_df in one_result_dict.items():
                     _car_df['gen_time'] = gen_time
@@ -446,7 +529,7 @@ def _total_excel_update(one_result_dict,mul_result_dict):
 
 def _export_cur_xl_mail_info(one_result_dict,mul_result_dict):
     filename = Config().export_xl_gen_name_from_mail
-    with pd.ExcelWriter(filename,engine='xlsxwriter') as writer:
+    with pd.ExcelWriter(filename) as writer:
         if one_result_dict:
             for _sheet,_car_df in one_result_dict.items():
                 _car_df.to_excel(writer,_sheet,index=False)

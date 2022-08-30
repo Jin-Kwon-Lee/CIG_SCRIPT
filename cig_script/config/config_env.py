@@ -79,3 +79,8 @@ class Config:
         result_carco_sheet = 'cargo_info'
         return result_carco_sheet
     
+    @property
+    def total_mail_sheet_name(self):
+        total_mail_sheet_name = 'TOTAL_SUMMARY'
+        return total_mail_sheet_name
+    

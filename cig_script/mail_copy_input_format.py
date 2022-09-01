@@ -419,13 +419,14 @@ def _write_or_update_excel(_file_path,_sheet,_df):
 def _excel_total_sheet_update(tot_excel_from_mail,one_result_dict,mul_result_dict,gen_time):
     tot_mail_sheet = Config().total_mail_sheet_name
     total_sheet_df = pd.read_excel(tot_excel_from_mail,sheet_name=tot_mail_sheet)
-    
+    total_sheet_df = total_sheet_df.drop(columns=['EDI_NO','H_BL_NO'])
     if one_result_dict:
         for _sheet,_car_df in one_result_dict.items():
             _car_df['gen_time'] = gen_time
             _car_df['SHEET'] = _sheet
 
             _is_include_car,exist_dup_car,sub_car_df = _check_include_df(_car_df,total_sheet_df,gen_time)
+            
             if _is_include_car:
                 pass
             else:
@@ -436,8 +437,10 @@ def _excel_total_sheet_update(tot_excel_from_mail,one_result_dict,mul_result_dic
                         total_sheet_df = pd.concat([total_sheet_df,sub_car_df]).set_index('YR').reset_index()
                 else:
                     total_sheet_df = pd.concat([total_sheet_df,_car_df]).set_index('YR').reset_index()
-
-                _write_or_update_excel(tot_excel_from_mail,tot_mail_sheet,total_sheet_df)
+                    
+                total_sheet_BL_EDI_df = _get_BL_no_from_edi_info(total_sheet_df)
+                
+                _write_or_update_excel(tot_excel_from_mail,tot_mail_sheet,total_sheet_BL_EDI_df)
 
     if mul_result_dict:
         for _sheet,_car_df in mul_result_dict.items():
@@ -457,7 +460,9 @@ def _excel_total_sheet_update(tot_excel_from_mail,one_result_dict,mul_result_dic
                 else:
                     total_sheet_df = pd.concat([total_sheet_df,_car_df]).set_index('YR').reset_index()
 
-                _write_or_update_excel(tot_excel_from_mail,tot_mail_sheet,total_sheet_df)
+                total_sheet_BL_EDI_df = _get_BL_no_from_edi_info(total_sheet_df)
+                
+                _write_or_update_excel(tot_excel_from_mail,tot_mail_sheet,total_sheet_BL_EDI_df)
 
 
 def _excel_write(tot_excel_from_mail,_result_dict,gen_time):
@@ -484,6 +489,78 @@ def _excel_write(tot_excel_from_mail,_result_dict,gen_time):
 
                 _write_or_update_excel(tot_excel_from_mail,_sheet,tot_sub_car_df)
 
+def _get_BL_no_from_edi_info(total_sheet_df):
+    # tot_mail_sheet = Config().total_mail_sheet_name
+    edi_path = Config().edi_data_path
+    edi_sheet = Config().edi_sheet
+
+    # total_sheet_df = pd.read_excel(tot_excel_from_mail,sheet_name=tot_mail_sheet)
+    if total_sheet_df.empty:
+        pass
+    else:
+        total_sheet_df = _reset_index(total_sheet_df)
+        total_sheet_df[['EDI_NO','H_BL_NO']] = np.nan
+
+        edi_df = pd.read_excel(edi_path,sheet_name=edi_sheet)
+        edi_no_list = edi_df['EDI NO.'].drop_duplicates().values
+
+        for row in total_sheet_df.CHASSINO.iteritems():
+            idx,val = row
+            mul_chassino = {}
+            one_chassino = ''
+            edi_no = ''
+            try:
+                mul_chassino = json.loads(val) 
+            except:
+                one_chassino = val
+            if one_chassino:
+                try:
+                    edi_no = edi_df.loc[(edi_df['CHASSINO.'] == val),'EDI NO.'].values[0]
+                except:
+                    print('there is no matched EDI NUM for : ', val)
+                    pass        
+            if mul_chassino:
+                first_key = next(iter(mul_chassino))
+                mul_chassino_first_value = mul_chassino[first_key]
+                try:
+                    edi_no = edi_df.loc[(edi_df['CHASSINO.'] == mul_chassino_first_value),'EDI NO.'].values[0]
+                except:
+                    print('there is no matched EDI NUM for : ', mul_chassino_first_value)
+                    pass        
+
+            result = re.search('(\d+)\s?$',edi_no)
+            if result == None:
+                pass
+            else:
+                hbl_no_sr = total_sheet_df['H_BL_NO'] 
+                edi_match_sr = total_sheet_df.loc[(total_sheet_df['EDI_NO']==edi_no),'H_BL_NO']
+                
+                if edi_match_sr.dropna().empty:
+                    _h_bl_no = edi_no
+                else:
+                    hbl_no_max = hbl_no_sr.dropna().max()
+                    if not hbl_no_max in edi_no_list:
+                        max_result = re.search('(\d+)\s?$',hbl_no_max)
+                        max_val = max_result.group(1)
+                        max_prefix = hbl_no_max.split(max_val)[0]
+                        max_val = int(max_val) + 1
+                        hbl_no_max = max_prefix + str(max_val).zfill(3)
+                    
+                    _h_bl_no = hbl_no_max
+
+                    while hbl_no_max in edi_no_list:
+                        max_result = re.search('(\d+)\s?$',hbl_no_max)
+                        max_val = max_result.group(1)
+                        max_prefix = hbl_no_max.split(max_val)[0]
+                        max_val = int(max_val) + 1
+                        hbl_no_max = max_prefix + str(max_val).zfill(3)
+
+                    _h_bl_no = hbl_no_max
+
+                total_sheet_df.loc[idx,'EDI_NO'] = edi_no
+                total_sheet_df.loc[idx,'H_BL_NO'] = _h_bl_no
+
+    return total_sheet_df
 
 def _total_excel_update(one_result_dict,mul_result_dict):
     
@@ -510,6 +587,8 @@ def _total_excel_update(one_result_dict,mul_result_dict):
                 _car_df['SHEET'] = _sheet
                 total_sheet_df = pd.concat([total_sheet_df,_car_df])
                 total_sheet_df['gen_time'] = gen_time
+
+        total_sheet_df = _get_BL_no_from_edi_info(total_sheet_df)
 
         with pd.ExcelWriter(tot_excel_from_mail) as writer:
             total_sheet_df.to_excel(writer,tot_mail_sheet,index=False)

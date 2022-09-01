@@ -110,3 +110,15 @@ input에 맞는 output이없음
 # 08-20 TODO list
 - multi car에서는 ACID가 동일할 수 있다.
 
+
+# 08-30 TODO list
+Total excel에 update할 때 overwrite되거나 새로운 sheet 추가할때 발생하는 error fix
+
+EDI no로 BL 따는 algorithm 짜기 excel 넣기 전
+1. detail 정보의 chassino로 EDI excel에서 EDI no를 가져옴.
+2. 현재 그 시작 EDI no가 하나도 없다면, 그 값부터 시작
+3. 있었다면, max 값의 +1
+
+Q1. EDI 없는경우?
+Q2. EDI excel 문서에 있는 chassino가 전부 다뤄야하는 정보인지?
+Q3. mul-car에서 개수만큼 bl 딸 때 counting?

@@ -84,3 +84,12 @@ class Config:
         total_mail_sheet_name = 'TOTAL_SUMMARY'
         return total_mail_sheet_name
     
+    @property
+    def edi_data_path(self):
+        edi_data_path = self.local_path + 'input_mail/edi_no_data.xlsx'
+        return edi_data_path
+    
+    @property
+    def edi_sheet(self):
+        edi_sheet = 'EDI_LATEST'
+        return edi_sheet

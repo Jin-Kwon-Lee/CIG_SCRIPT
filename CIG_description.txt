@@ -122,3 +122,8 @@ EDI no로 BL 따는 algorithm 짜기 excel 넣기 전
 Q1. EDI 없는경우?
 Q2. EDI excel 문서에 있는 chassino가 전부 다뤄야하는 정보인지?
 Q3. mul-car에서 개수만큼 bl 딸 때 counting?
+
+# 09-06 TODO list
+0. consignee 다 가져오기 
+1. Macro formatting
+2. Compare feature 보강하기

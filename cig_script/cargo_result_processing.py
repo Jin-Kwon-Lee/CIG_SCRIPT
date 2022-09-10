@@ -3,7 +3,7 @@ import re
 import json
 
 from config.config_env import Config
-from mail_copy_input_format import _autowidth_excel
+from excel_mail_info import _autowidth_excel
 from check_valid_data import call_error_message_from_cargo
 
 def _get_cargo_result_df(cargo_path):

@@ -85,6 +85,11 @@ class Config:
         return total_mail_sheet_name
     
     @property
+    def total_macro_sheet(self):
+        total_macro_sheet = 'TOTAL_MACRO'
+        return total_macro_sheet
+    
+    @property
     def edi_data_path(self):
         edi_data_path = self.local_path + 'input_mail/edi_no_data.xlsx'
         return edi_data_path

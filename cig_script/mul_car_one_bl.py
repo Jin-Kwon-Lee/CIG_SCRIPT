@@ -2,12 +2,25 @@ import pandas as pd
 import numpy as np
 import json
 
+from tqdm import tqdm
+from time import sleep
+
 from common_mail_script import _remove_NBSP_df
 from common_mail_script import _reset_index
 from common_mail_script import _get_ship_dict
 from common_mail_script import _get_df_car_con_info
 from common_mail_script import _get_df_car_info
 from check_valid_data import call_error_message_mail_con_acid_empty
+
+def _mul_car_decorator(func):
+    def wrapper(*args, **kargs):
+        print("MULTI CAR @ mail started!")
+        print("Function Name : ",func.__name__)
+        result = func(*args, **kargs)
+        print("MULTI CAR @ mail compelete!")
+        print('')
+        return result
+    return wrapper
 
 def _get_mul_car_mail_in_format(mail_copy_in_path,mul_sheet):
     df = pd.read_excel(mail_copy_in_path,sheet_name=mul_sheet,header= None)
@@ -220,8 +233,9 @@ def _get_mul_car_one_bl(mail_copy_in_path,mul_sheet):
     return df
 
 
+@_mul_car_decorator
 def _get_mul_mail_dict(mail_copy_in_path,mul_result_dict,mul_sheet_list):
-    for mul_sheet in mul_sheet_list:
+    for mul_sheet in tqdm(mul_sheet_list):
         mul_car_one_bl_df = _get_mul_car_one_bl(mail_copy_in_path,mul_sheet)
         if mul_car_one_bl_df.empty:
             print('MULTI CAR ONE BL info is EMPTY! : ', mul_sheet)

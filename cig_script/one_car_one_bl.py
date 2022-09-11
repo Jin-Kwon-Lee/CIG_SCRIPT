@@ -1,4 +1,6 @@
 import pandas as pd
+from tqdm import tqdm
+
 from common_mail_script import _remove_NBSP_df
 from common_mail_script import _reset_index
 from common_mail_script import _get_ship_dict
@@ -6,12 +8,25 @@ from common_mail_script import _get_df_car_con_info
 from common_mail_script import _get_df_car_info
 from check_valid_data import call_error_message_mail_con_acid_empty
 
+def _one_car_decorator(func):
+    def wrapper(*args, **kargs):
+        print('')
+        print("ONE CAR @ mail started!")
+        print("Function Name : ",func.__name__)
+        result = func(*args, **kargs)
+        print("ONE CAR @ mail complete!")
+        print('')
+        return result
+    return wrapper
+
+
 def _get_one_car_mail_in_format(mail_copy_in_path,one_sheet):
     df = pd.read_excel(mail_copy_in_path,sheet_name=one_sheet,header= None)
     return df
 
 
 def _get_one_car_macro_form(df):
+    df.CAR_COUNT = df.CAR_COUNT.astype(int)
     df = df.loc[(df['CAR_COUNT'] == 1),:]
     macro_df = pd.DataFrame(index=df.index,columns=['MODEL_YR_CHASSINO','H_BL_NO','CONSIGNEE','ACID_INFO','WEIGHT','CBM'])
 
@@ -193,6 +208,7 @@ def _get_one_car_consignee_info(df,one_sheet):
 
     return total_df
 
+
 def _get_one_car_one_bl(mail_copy_in_path,one_sheet):
     df = _get_one_car_mail_in_format(mail_copy_in_path,one_sheet)
     df = _remove_NBSP_df(df)
@@ -201,8 +217,9 @@ def _get_one_car_one_bl(mail_copy_in_path,one_sheet):
     df = _get_one_car_consignee_info(df,one_sheet)
     return df
 
+@_one_car_decorator
 def _get_one_mail_dict(mail_copy_in_path,one_result_dict,one_sheet_list):
-    for one_sheet in one_sheet_list:
+    for one_sheet in tqdm(one_sheet_list):
         one_car_one_bl_df = _get_one_car_one_bl(mail_copy_in_path,one_sheet)
         if one_car_one_bl_df.empty :
             print('ONE CAR ONE BL info is EMPTY! : ', one_sheet)

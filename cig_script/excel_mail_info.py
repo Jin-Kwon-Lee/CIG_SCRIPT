@@ -4,10 +4,35 @@ import numpy as np
 import re
 import json
 
+from tqdm import tqdm
+
 from datetime import datetime
 from config.config_env import Config
 from common_mail_script import _reset_index
 from one_car_one_bl import _get_one_car_macro_form
+
+
+def _excel_decorator(func):
+    def wrapper(*args, **kargs):
+        print('')
+        print("SUB SHEET UPDATE started!")
+        print("Function Name : ",func.__name__)
+        result = func(*args, **kargs)
+        print("SUB SHEET UPDATE complete!")
+        print('')
+        return result
+    return wrapper
+
+def _excel_total_decorator(func):
+    def wrapper(*args, **kargs):
+        print('')
+        print("TOTAL SHEET UPDATE started!")
+        print("Function Name : ",func.__name__)
+        result = func(*args, **kargs)
+        print("TOTAL SHEET UPDATE complete!")
+        print('')
+        return result
+    return wrapper
 
 
 def _autowidth_excel(writer,sheet_name,df):
@@ -17,22 +42,17 @@ def _autowidth_excel(writer,sheet_name,df):
         col_idx = df.columns.get_loc(column)
         writer.sheets[sheet_name].set_column(col_idx, col_idx, column_length)
 
-def _write_or_update_excel(_file_path,_sheet,_df,_macro_df):
+
+def _write_or_update_excel(_file_path,_sheet,_df):
     _df = _df.astype(str)
-    _macro_df = _macro_df.astype(str)
-    macro_sheet = Config().total_macro_sheet
 
     if not os.path.exists(_file_path):
         with pd.ExcelWriter(_file_path, mode= 'w') as writer: 
             _df.to_excel(writer,_sheet,index=False)
             _autowidth_excel(writer,_sheet,_df)
-            _macro_df.to_excel(writer,macro_sheet,index=False)
-            _autowidth_excel(writer,macro_sheet,_macro_df)
     else:
         with pd.ExcelWriter(_file_path, mode= 'a',engine='openpyxl',if_sheet_exists='overlay') as writer: 
             _df.to_excel(writer,_sheet,index=False)
-            _macro_df.to_excel(writer,macro_sheet,index=False)
-
 
 def _get_BL_no_from_edi_info(total_sheet_df):
     edi_path = Config().edi_data_path
@@ -143,9 +163,10 @@ def _check_include_df(cur_df,tot_df,gen_time):
     
     return is_include,exist_dup,sub_df
 
+@_excel_decorator
 def _excel_write(tot_excel_from_mail,_result_dict,gen_time):
     if _result_dict:
-        for _sheet,_car_df in _result_dict.items():
+        for _sheet,_car_df in tqdm(_result_dict.items()):
             _car_df['gen_time'] = gen_time
             try:
                 tot_sub_car_df = pd.read_excel(tot_excel_from_mail,sheet_name=_sheet)
@@ -168,13 +189,14 @@ def _excel_write(tot_excel_from_mail,_result_dict,gen_time):
                 _write_or_update_excel(tot_excel_from_mail,_sheet,tot_sub_car_df)
 
 
+@_excel_total_decorator
 def _excel_total_sheet_update(tot_excel_from_mail,one_result_dict,mul_result_dict,gen_time):
     tot_mail_sheet = Config().total_mail_sheet_name
     total_sheet_df = pd.read_excel(tot_excel_from_mail,sheet_name=tot_mail_sheet)
     total_sheet_df = total_sheet_df.drop(columns=['EDI_NO','H_BL_NO','WEIGHT','CBM'])
 
     if one_result_dict:
-        for _sheet,_car_df in one_result_dict.items():
+        for _sheet,_car_df in tqdm(one_result_dict.items()):
             _car_df['gen_time'] = gen_time
             _car_df['SHEET'] = _sheet
 
@@ -193,11 +215,12 @@ def _excel_total_sheet_update(tot_excel_from_mail,one_result_dict,mul_result_dic
                     
                 total_sheet_BL_EDI_df = _get_BL_no_from_edi_info(total_sheet_df)
                 total_macro_format_df = _get_one_car_macro_form(total_sheet_BL_EDI_df)
-                
-                _write_or_update_excel(tot_excel_from_mail,tot_mail_sheet,total_sheet_BL_EDI_df,total_macro_format_df)
+
+                _write_or_update_excel(tot_excel_from_mail,tot_mail_sheet,total_sheet_BL_EDI_df)
+                _write_or_update_excel(tot_excel_from_mail,Config().total_macro_sheet,total_macro_format_df)
 
     if mul_result_dict:
-        for _sheet,_car_df in mul_result_dict.items():
+        for _sheet,_car_df in tqdm(mul_result_dict.items()):
             _car_df['gen_time'] = gen_time
             _car_df['SHEET'] = _sheet
 
@@ -234,6 +257,7 @@ def _total_excel_update(one_result_dict,mul_result_dict):
         _excel_write(tot_excel_from_mail,mul_result_dict,gen_time)
 
     else:
+        print('NEW Total mail file generation started!')
         total_sheet_df = pd.DataFrame()
         if one_result_dict:
             for _sheet,_car_df in one_result_dict.items():
@@ -268,6 +292,8 @@ def _total_excel_update(one_result_dict,mul_result_dict):
                     _car_df['gen_time'] = gen_time
                     _car_df.to_excel(writer,_sheet,index=False)
                     _autowidth_excel(writer,_sheet,_car_df)
+
+        print('NEW Total mail file generated!')
 
 
 def _export_cur_xl_mail_info(one_result_dict,mul_result_dict):

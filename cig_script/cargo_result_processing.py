@@ -158,7 +158,7 @@ def _cha_info(err_row_list,cha_info_df,cha_model_yr_no_df,cha_acid_df,cha_export
     chassino_dict = {}
 
     if len(cha_model_yr_no_list) == 1:
-        cha_info_result = re.search('\d+\.\s(\S+\s*?(\w+)?)\s+(\d+)\s+(\w+)',cha_model_yr_no_list[0])
+        cha_info_result = re.search('\d+\.\s?(\S+\s*?(\w+)?)\s+(\d+)\s+(\w+)',cha_model_yr_no_list[0])
         try:
             model = cha_info_result.group(1)
             year = cha_info_result.group(3)

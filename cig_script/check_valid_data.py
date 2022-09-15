@@ -103,10 +103,10 @@ def _ERROR_mail_con_acid_empty_default_labeling(window):
 
 def _ERROR_CARGO_default_labeling(window):
     #    Error message 
-    lb_err_msg1 = Label(window, text="This ERROR message is triggered from CARGO MANIFAST!")
+    lb_err_msg1 = Label(window, text="This ERROR message is triggered from CARGO MANIFEST!")
     lb_err_msg1.place(x=10, y=10)
     
-    lb_err_msg2 = Label(window, text="Pleas check below error location from CARGO MANIFAST!")
+    lb_err_msg2 = Label(window, text="Pleas check below error location from CARGO MANIFEST!")
     lb_err_msg2.place(x=10, y=30)
 
     lb_err_msg3 = Label(window, text="After fix these error, Please re-run!")

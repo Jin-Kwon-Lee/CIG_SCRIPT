@@ -66,7 +66,7 @@ class Config:
 
     @property
     def cargo_path(self):
-        cargo_path = self.local_path + 'output_cargo/CARGO_MANIFAST.xls'
+        cargo_path = self.local_path + 'output_cargo/CARGO_MANIFEST.xls'
         return cargo_path
     
     @property

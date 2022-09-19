@@ -1,4 +1,5 @@
 import pandas as pd
+import re
 from tqdm import tqdm
 
 from common_mail_script import _remove_NBSP_df
@@ -98,9 +99,11 @@ def _get_one_car_shipper_info(df):
 
 def _get_df_one_car_chassi_info(chass_df,chassi_no,cnt):
     dic = {}
-    cha_name = chassi_no.split()[0].strip()
-    cha_year = chassi_no.split()[1].strip()
-    cha_no = chassi_no.split()[2].strip()
+    
+    chassi_info = re.search('(\w+\s?(\w+)?)(\s+|\D)(\d+)\s+(\w+)',chassi_no)
+    cha_name = chassi_info.group(1).strip()
+    cha_year = chassi_info.group(4)
+    cha_no = chassi_info.group(5).strip()
     
     dic.update({'MODEL':{cnt:cha_name},'YR':{cnt:cha_year},'CHASSINO':{cnt:cha_no}})
     df = pd.DataFrame.from_dict(data=dic)

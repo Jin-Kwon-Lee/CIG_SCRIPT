@@ -85,6 +85,7 @@ def _get_BL_no_from_edi_info(total_sheet_df):
                     print('there is no matched EDI NUM for : ', val)
                     pass        
             if mul_chassino:
+                
                 first_key = next(iter(mul_chassino))
                 mul_chassino_first_value = mul_chassino[first_key]
                 try:

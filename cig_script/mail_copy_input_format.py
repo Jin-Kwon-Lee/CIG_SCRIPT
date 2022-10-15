@@ -1,20 +1,40 @@
-
 import os
 import pandas as pd
-import numpy as np
 import re
-import json
-
-from config.config_env import Config
+import shutil
 
 from datetime import datetime
+
+from config.config_env import Config
 from one_car_one_bl import _get_one_mail_dict
 from mul_car_one_bl import _get_mul_mail_dict
-from common_mail_script import _reset_index
 from excel_mail_info import _export_tot_xl_mail_info
 from excel_mail_info import _export_cur_xl_mail_info
 
+# from cig_script.config.config_env import Config
+# from cig_script.one_car_one_bl import _get_one_mail_dict
+# from cig_script.mul_car_one_bl import _get_mul_mail_dict
+# from cig_script.excel_mail_info import _export_tot_xl_mail_info
+# from cig_script.excel_mail_info import _export_cur_xl_mail_info
 
+
+def _log_extract_mail_input_xl(total_option):
+    total_option = total_option.upper()
+    dir_name = Config().local_path + Config().mail_copy_in_name
+    
+    ori_mail_path = Config().mail_copy_in_path
+
+    if total_option in ['1', 'Y','YES']:
+        now = datetime.now()
+        formattedDate = now.strftime("%Y%m%d_%H%M")
+        log_format_name = '_' + formattedDate
+        log_mail_path = dir_name + log_format_name + '.xlsx'
+        
+        # if os.path.isfile(log_mail_path):
+        #     pass
+        # else:
+        #     shutil.copy(ori_mail_path,log_mail_path)
+            
 def _get_all_sheet_from_mail(mail_copy_in_path,one_sheet_list,mul_sheet_list):
     df = pd.read_excel(mail_copy_in_path,sheet_name=None,header= None)
     sheet_list = list(df.keys())
@@ -50,6 +70,8 @@ def get_mail_in_format(mail_copy_in_path):
     
     _export_tot_xl_mail_info(one_result_dict,mul_result_dict,total_option)
     _export_cur_xl_mail_info(one_result_dict,mul_result_dict)
+
+    _log_extract_mail_input_xl(total_option)
 
 
             

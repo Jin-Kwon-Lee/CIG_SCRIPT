@@ -40,8 +40,14 @@ class Config:
         return total_mul_car_sheet_name
 
     @property
+    def tot_excel_loc_name(self):
+        tot_excel_loc_name = 'input_mail/result/' + 'total_data_from_mail.xlsx'
+        return tot_excel_loc_name
+
+
+    @property
     def tot_excel_from_mail(self):
-        tot_excel_from_mail = self.local_path + 'input_mail/result/' + 'total_data_from_mail.xlsx'
+        tot_excel_from_mail = self.local_path + self.tot_excel_loc_name
         return tot_excel_from_mail
 
     @property
@@ -90,8 +96,13 @@ class Config:
         return total_macro_sheet
     
     @property
+    def edi_xl_name(self):
+        edi_xl_name = 'input_mail/edi_no_data.xlsx'
+        return edi_xl_name
+    
+    @property
     def edi_data_path(self):
-        edi_data_path = self.local_path + 'input_mail/edi_no_data.xlsx'
+        edi_data_path = self.local_path + self.edi_xl_name
         return edi_data_path
     
     @property

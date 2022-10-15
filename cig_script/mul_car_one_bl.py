@@ -12,6 +12,13 @@ from common_mail_script import _get_df_car_con_info
 from common_mail_script import _get_df_car_info
 from check_valid_data import call_error_message_mail_con_acid_empty
 
+# from cig_script.common_mail_script import _remove_NBSP_df
+# from cig_script.common_mail_script import _reset_index
+# from cig_script.common_mail_script import _get_ship_dict
+# from cig_script.common_mail_script import _get_df_car_con_info
+# from cig_script.common_mail_script import _get_df_car_info
+# from cig_script.check_valid_data import call_error_message_mail_con_acid_empty
+
 def _mul_car_decorator(func):
     def wrapper(*args, **kargs):
         print("MULTI CAR @ mail started!")

@@ -9,6 +9,13 @@ from common_mail_script import _get_df_car_con_info
 from common_mail_script import _get_df_car_info
 from check_valid_data import call_error_message_mail_con_acid_empty
 
+# from cig_script.common_mail_script import _remove_NBSP_df
+# from cig_script.common_mail_script import _reset_index
+# from cig_script.common_mail_script import _get_ship_dict
+# from cig_script.common_mail_script import _get_df_car_con_info
+# from cig_script.common_mail_script import _get_df_car_info
+# from cig_script.check_valid_data import call_error_message_mail_con_acid_empty
+
 def _one_car_decorator(func):
     def wrapper(*args, **kargs):
         print('')
@@ -190,7 +197,7 @@ def _get_one_car_consignee_info(df,one_sheet):
             acid_no = acid_no_list[1].strip()
             acid_df = _get_df_car_info(acid_df,cate,acid_no,BL_cnt)
     
-        if 'IMPORTER VAT NUMBER' in val or 'IMPORTER TAX NUMBER' in val:
+        if 'IMPORTER VAT NUMBER' in val or 'IMPORTER TAX NUMBER' in val or 'IMPORTER TAX NO' in val:
             import_tax_list = val.split(':')
             cate = 'IMPORTER TAX NUMBER'
             import_tax = import_tax_list[1].strip()
@@ -205,10 +212,27 @@ def _get_one_car_consignee_info(df,one_sheet):
     if con_df.empty :
         err_dict = {1:(idx,one_sheet,'ONE_CONSIGNEE_EMPTY')}
         call_error_message_mail_con_acid_empty(err_dict)
-    else:
-        total_df = _merge_df_one_description_info(con_df,chassi_df,acid_df,import_tax_df,export_num_df)
-        total_df['CAR_COUNT'] = 1
+    
+    if chassi_df.empty :
+        err_dict = {1:(idx,one_sheet,'ONE_CHASSINO_EMPTY')}
+        call_error_message_mail_con_acid_empty(err_dict)
 
+    if acid_df.empty :
+        err_dict = {1:(idx,one_sheet,'ONE_ACID_EMPTY')}
+        call_error_message_mail_con_acid_empty(err_dict)
+    
+    if import_tax_df.empty :
+        err_dict = {1:(idx,one_sheet,'ONE_IMPORTER_EMPTY')}
+        call_error_message_mail_con_acid_empty(err_dict)
+    
+    if export_num_df.empty :
+        err_dict = {1:(idx,one_sheet,'ONE_EXPORTER_EMPTY')}
+        call_error_message_mail_con_acid_empty(err_dict)
+
+
+    total_df = _merge_df_one_description_info(con_df,chassi_df,acid_df,import_tax_df,export_num_df)
+    total_df['CAR_COUNT'] = 1
+    
     return total_df
 
 
@@ -226,6 +250,8 @@ def _get_one_mail_dict(mail_copy_in_path,one_result_dict,one_sheet_list):
         one_car_one_bl_df = _get_one_car_one_bl(mail_copy_in_path,one_sheet)
         if one_car_one_bl_df.empty :
             print('ONE CAR ONE BL info is EMPTY! : ', one_sheet)
+            err_dict = {1:('N/A',one_sheet,'ONE_INFO_ERROR')}
+            call_error_message_mail_con_acid_empty(err_dict)
         else:
             one_result_dict.update({one_sheet:one_car_one_bl_df})
     return one_result_dict

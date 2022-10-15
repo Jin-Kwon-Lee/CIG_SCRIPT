@@ -109,6 +109,12 @@ def _merge_cha_info_df(cha_info_df,cha_model_yr_no_df,cha_acid_df,cha_export_id_
 def _check_except_case_for_import_tax(cha_list,err_row_list,upper_cha_info,idx):
     if not cha_list:
         cha_list = re.findall('IMPORTER VAT.*',upper_cha_info)
+        if not cha_list:
+            cha_list = re.findall('IMPORTER ID.*',upper_cha_info)
+            if not cha_list:
+                cha_list = re.findall('IMPORTER NO.*',upper_cha_info)
+                if not cha_list:
+                    cha_list = re.findall('IMPORTER NUMBER.*',upper_cha_info)
 
     if not cha_list:
         err_row_list.append(idx+1)
@@ -130,7 +136,6 @@ def _check_except_case_for_export_id(cha_list,err_row_list,upper_cha_info,idx):
 def _cha_info(err_row_list,cha_info_df,cha_model_yr_no_df,cha_acid_df,cha_export_id_df,cha_import_tax_df,sub_df,col,idx,cnt):
     df = sub_df[col]
     cha_info = df.values[0]
-
     upper_cha_info = df.values[0].upper()
 
     model = ''
@@ -156,8 +161,7 @@ def _cha_info(err_row_list,cha_info_df,cha_model_yr_no_df,cha_acid_df,cha_export
     model_dict = {}
     year_dict = {}
     chassino_dict = {}
-
-    if len(cha_model_yr_no_list) == 1:
+    if len(cha_model_yr_no_list) == 1:  
         cha_info_result = re.search('\d+\.\s?(\S+\s*?(\w+)?)\s+(\d+)\s+(\w+)',cha_model_yr_no_list[0])
         try:
             model = cha_info_result.group(1)
@@ -200,9 +204,9 @@ def _cha_info(err_row_list,cha_info_df,cha_model_yr_no_df,cha_acid_df,cha_export
     cha_model_yr_no_df = pd.concat([cha_model_yr_no_df,sub_cha_model_yr_no_df])
         
     for cha_acid in cha_acid_list:
-        cha_acid_result = re.search('ACID NO.\s?(\d+)',cha_acid)
+        cha_acid_result = re.search('ACID(\sNO)?\s?.\s?(\d+)',cha_acid)
         try:
-            acid = cha_acid_result.group(1)
+            acid = cha_acid_result.group(2)
         except AttributeError:
             err_row_list.append(idx+1)
             print('Please check ACID info if around info is correct',acid,idx+1)
@@ -288,7 +292,7 @@ def _get_info_cargo_result(df):
     err_empty_cha_list = []
 
     zero_col_df = df.copy().dropna(subset=[0])
-    zero_col_df = zero_col_df[zero_col_df[0].str.contains('INPS')]
+    zero_col_df = zero_col_df[zero_col_df[0].str.contains('CIG')]
     m_bl_idx_list = list(zero_col_df.index)
 
     init_idx = m_bl_idx_list[0]
@@ -335,7 +339,6 @@ def _get_info_cargo_result(df):
             tot_cbm_df,err_tot_cbm_list = _tot_cbm_info(err_tot_cbm_list,tot_cbm_df,sub_ship_con_df,tot_cbm_col,ship_con_idx,cnt)
             ## cha info df
             cha_info_df,err_empty_cha_list = _cha_info(err_empty_cha_list,cha_info_df,cha_model_yr_no_df,cha_acid_df,cha_export_id_df,cha_import_tax_df,sub_cha_info_df,cha_info_col,cha_info_idx,cnt)
-
         if err_ship_con_list:
             err_cnt = err_cnt + 1
             err_col = _int2alpha(ship_con_col)
@@ -361,7 +364,6 @@ def _get_info_cargo_result(df):
             err_col = _int2alpha(cha_info_col)
             err_empty_cha_dict = {err_cnt:(err_empty_cha_list,err_col,'MISSING_INFO')}
             err_dict.update(err_empty_cha_dict)
-
         total_df = _merge_total_info(m_bl_info_df,ship_con_info_df,cha_num_info_df,tot_weight_df,tot_cbm_df,cha_info_df)
 
     return total_df,err_dict

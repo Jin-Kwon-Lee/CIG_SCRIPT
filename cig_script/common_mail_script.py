@@ -27,7 +27,9 @@ def _get_ship_dict(df,ship_dict,ship_start_val,ship_start_idx,ship_end_idx,ship_
 
 def _get_df_car_con_info(con_df,cate,val,cnt):
     dic = {}
+    cate = cate.strip()
     cate = str(re.match('\w+',cate)[0])
+    
     dic.update({cate:{cnt:val}})
     df = pd.DataFrame.from_dict(data=dic)
     

@@ -30,10 +30,10 @@ def _log_extract_mail_input_xl(total_option):
         log_format_name = '_' + formattedDate
         log_mail_path = dir_name + log_format_name + '.xlsx'
         
-        # if os.path.isfile(log_mail_path):
-        #     pass
-        # else:
-        #     shutil.copy(ori_mail_path,log_mail_path)
+        if os.path.isfile(log_mail_path):
+            pass
+        else:
+            shutil.copy(ori_mail_path,log_mail_path)
             
 def _get_all_sheet_from_mail(mail_copy_in_path,one_sheet_list,mul_sheet_list):
     df = pd.read_excel(mail_copy_in_path,sheet_name=None,header= None)

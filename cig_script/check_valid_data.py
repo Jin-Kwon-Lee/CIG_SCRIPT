@@ -1,7 +1,10 @@
+from turtle import onclick
 import numpy as np
-from tkinter import *
+import pandas as pd
 import warnings
 import tkinter as tk
+
+from tkinter import *
 from config.config_env import Config
 
 def warn_empty_df():
@@ -187,6 +190,10 @@ def _gen_error_win():
     window.title("Error Message!")
     return window
 
+def _gen_notice_win():
+    window = Tk()
+    window.title("Notice Message!")
+    return window
 
 def _call_error_message_window(window,*err_dict):
     # label,entry location config
@@ -637,3 +644,167 @@ def call_error_message_chassino_duplicate_error(err_dict):
     _ERROR_mail_chassino_dup_error_default_labeling(window)
     _call_error_chassino_dup_error_message_window(window,loc_dict)
     exit()
+
+
+def _NOTICE_mail_default_labeling(window):
+    lb_nt_msg1 = Label(window, text="The left side info comes from input mail excel")
+    lb_nt_msg1.place(x=50, y=10)
+
+    lb_nt_msg2 = Label(window, text="The right side info comes from Total summary")
+    lb_nt_msg2.place(x=450, y=10)
+    
+    #    Current working directory path
+    input_mail_xl_path = Config().mail_copy_in_name 
+    total_xl_path = Config().tot_excel_loc_name
+
+    lb_working_dir = Label(window, text="Input mail format path : ")
+    lb_working_dir.place(x=50, y=40)
+    
+    ety_working_path = tk.Entry(fg="gray19", bg="snow", width=40)
+    ety_working_path.place(x=50,y=60)
+    ety_working_path.insert(0,input_mail_xl_path)
+
+    lb_tot_dir = Label(window, text="TOTAL EXCEL path : ")
+    lb_tot_dir.place(x=450, y=40)
+    
+    ety_tot_path = tk.Entry(fg="gray19", bg="snow", width=40)
+    ety_tot_path.place(x=450,y=60)
+    ety_tot_path.insert(0,total_xl_path)
+
+def yes_modify(btnVal):
+    btnVal.set(True)
+    return btnVal
+
+def no_modify(btnVal):
+    btnVal.set(False)
+    return btnVal
+
+def _label_location(window,default_y_row,lb_x_row,lb_y_row,ety_x_row,ety_y_row,cur_info,col_name):
+    textVal = StringVar()
+
+    lb_in_xl_row = Label(window, textvariable=textVal)
+    textVal.set(col_name)
+    lb_in_xl_row.place(x=lb_x_row,y=lb_y_row)
+
+    ety_in_xl_row = tk.Entry(fg="gray19", bg="snow", width=40)
+    ety_in_xl_row.place(x=ety_x_row,y=ety_y_row)
+    ety_in_xl_row.insert(0,cur_info)
+
+    default_y_row = ety_y_row
+
+    return default_y_row
+
+def _call_modify_msesage_window(window,cur_df,include_df,sheet_name):
+    btnVal= BooleanVar()
+
+    default_y_row_1 = 60
+    default_y_row_2 = 60
+    lb_y_step_size = 30
+    lb_x_row = 50
+    ety_y_step_size = 60
+    ety_x_row = 50
+    x_gap = 400 
+
+    for idx,cols in cur_df.iterrows():
+        cur_yr = cols.YR
+        cur_consignee = cols.CONSIGNEE
+        cur_model = cols.MODEL
+        cur_chassino = cols.CHASSINO
+        cur_acid = cols['ACID NO']
+        cur_import = cols['IMPORTER TAX NUMBER']
+        cur_export = cols['FREIGHT FORWARDER ID']
+        cur_sheet = cols.SHEET
+
+        lb_y_row_1 = default_y_row_1 + lb_y_step_size
+        ety_y_row_1 = default_y_row_1 + ety_y_step_size 
+
+        default_y_row_1 =_label_location(window,default_y_row_1,lb_x_row,lb_y_row_1,ety_x_row,ety_y_row_1,cur_yr,"YR")
+        lb_y_row_1 = default_y_row_1 + lb_y_step_size
+        ety_y_row_1 = default_y_row_1 + ety_y_step_size 
+        default_y_row_1 =_label_location(window,default_y_row_1,lb_x_row,lb_y_row_1,ety_x_row,ety_y_row_1,cur_consignee,"CONSIGNEE")
+        lb_y_row_1 = default_y_row_1 + lb_y_step_size
+        ety_y_row_1 = default_y_row_1 + ety_y_step_size 
+        default_y_row_1 =_label_location(window,default_y_row_1,lb_x_row,lb_y_row_1,ety_x_row,ety_y_row_1,cur_model,"MDOEL")
+        lb_y_row_1 = default_y_row_1 + lb_y_step_size
+        ety_y_row_1 = default_y_row_1 + ety_y_step_size 
+        default_y_row_1 =_label_location(window,default_y_row_1,lb_x_row,lb_y_row_1,ety_x_row,ety_y_row_1,cur_chassino,"CHASSINO")
+        lb_y_row_1 = default_y_row_1 + lb_y_step_size
+        ety_y_row_1 = default_y_row_1 + ety_y_step_size 
+        default_y_row_1 =_label_location(window,default_y_row_1,lb_x_row,lb_y_row_1,ety_x_row,ety_y_row_1,cur_acid,"ACID")
+        lb_y_row_1 = default_y_row_1 + lb_y_step_size
+        ety_y_row_1 = default_y_row_1 + ety_y_step_size 
+        default_y_row_1 =_label_location(window,default_y_row_1,lb_x_row,lb_y_row_1,ety_x_row,ety_y_row_1,cur_import,"IMPORTER TAX")
+        lb_y_row_1 = default_y_row_1 + lb_y_step_size
+        ety_y_row_1 = default_y_row_1 + ety_y_step_size 
+        default_y_row_1 =_label_location(window,default_y_row_1,lb_x_row,lb_y_row_1,ety_x_row,ety_y_row_1,cur_export,"EXPORTER")
+        lb_y_row_1 = default_y_row_1 + lb_y_step_size
+        ety_y_row_1 = default_y_row_1 + ety_y_step_size 
+        default_y_row_1 =_label_location(window,default_y_row_1,lb_x_row,lb_y_row_1,ety_x_row,ety_y_row_1,cur_sheet,"SHEET")
+        
+
+    for idx,cols in include_df.iterrows():
+        include_yr = cols.YR
+        include_consignee = cols.CONSIGNEE
+        include_model = cols.MODEL
+        include_chassino = cols.CHASSINO
+        include_acid = cols['ACID NO']
+        include_import = cols['IMPORTER TAX NUMBER']
+        include_export = cols['FREIGHT FORWARDER ID']
+        include_sheet = cols.SHEET
+
+        lb_y_row_2 = default_y_row_2 + lb_y_step_size
+        ety_y_row_2 = default_y_row_2 + ety_y_step_size 
+        lb_x_row_2 = lb_x_row + x_gap
+        ety_x_row_2 = ety_x_row + x_gap
+
+        default_y_row_2 =_label_location(window,default_y_row_2,lb_x_row_2,lb_y_row_2,ety_x_row_2,ety_y_row_2,include_yr,"YR")
+        lb_y_row_2 = default_y_row_2 + lb_y_step_size
+        ety_y_row_2 = default_y_row_2 + ety_y_step_size 
+        default_y_row_2 =_label_location(window,default_y_row_2,lb_x_row_2,lb_y_row_2,ety_x_row_2,ety_y_row_2,include_consignee,"CONSIGNEE")
+        lb_y_row_2 = default_y_row_2 + lb_y_step_size
+        ety_y_row_2 = default_y_row_2 + ety_y_step_size 
+        default_y_row_2 =_label_location(window,default_y_row_2,lb_x_row_2,lb_y_row_2,ety_x_row_2,ety_y_row_2,include_model,"MDOEL")
+        lb_y_row_2 = default_y_row_2 + lb_y_step_size
+        ety_y_row_2 = default_y_row_2 + ety_y_step_size 
+        default_y_row_2 =_label_location(window,default_y_row_2,lb_x_row_2,lb_y_row_2,ety_x_row_2,ety_y_row_2,include_chassino,"CHASSINO")
+        lb_y_row_2 = default_y_row_2 + lb_y_step_size
+        ety_y_row_2 = default_y_row_2 + ety_y_step_size 
+        default_y_row_2 =_label_location(window,default_y_row_2,lb_x_row_2,lb_y_row_2,ety_x_row_2,ety_y_row_2,include_acid,"ACID")
+        lb_y_row_2 = default_y_row_2 + lb_y_step_size
+        ety_y_row_2 = default_y_row_2 + ety_y_step_size 
+        default_y_row_2 =_label_location(window,default_y_row_2,lb_x_row_2,lb_y_row_2,ety_x_row_2,ety_y_row_2,include_import,"IMPORTER TAX")
+        lb_y_row_2 = default_y_row_2 + lb_y_step_size
+        ety_y_row_2 = default_y_row_2 + ety_y_step_size 
+        default_y_row_2 =_label_location(window,default_y_row_2,lb_x_row_2,lb_y_row_2,ety_x_row_2,ety_y_row_2,include_export,"EXPORTER")
+        lb_y_row_2 = default_y_row_2 + lb_y_step_size
+        ety_y_row_2 = default_y_row_2 + ety_y_step_size 
+        default_y_row_2 =_label_location(window,default_y_row_2,lb_x_row_2,lb_y_row_2,ety_x_row_2,ety_y_row_2,sheet_name,"SHEET")
+        
+
+    yes_btn = Button(window, text="Yes, Modify it", command=lambda:btnVal==yes_modify(btnVal), height=2, width=14)
+    yes_btn.place(x=450,y=580)
+
+    no_btn = Button(window, text="No, Don't modify",command=lambda:btnVal==no_modify(btnVal), height=2, width=14)
+    no_btn.place(x=200,y=580)
+
+    window.geometry('800x750')
+    window.mainloop()
+
+    btnVal = btnVal.get()
+    if btnVal:
+        pass
+    else:
+        print(" ")
+        print("Not modified")
+        print(" ")
+        exit()
+
+    modify_info = (btnVal,cur_df)
+
+    return modify_info
+
+def call_modify_message_input_detail(cur_df,include_df,sheet_name): 
+    window = _gen_notice_win()
+    _NOTICE_mail_default_labeling(window)
+    modify_info = _call_modify_msesage_window(window,cur_df,include_df,sheet_name)
+    return modify_info

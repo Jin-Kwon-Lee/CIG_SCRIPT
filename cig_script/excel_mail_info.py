@@ -12,6 +12,7 @@ from common_mail_script import _reset_index
 from one_car_one_bl import _get_one_car_macro_form
 from check_valid_data import call_error_message_edi_error
 from check_valid_data import call_error_message_chassino_duplicate_error
+from check_valid_data import call_modify_message_input_detail
 
 # from cig_script.config.config_env import Config
 # from cig_script.common_mail_script import _reset_index
@@ -237,52 +238,53 @@ def _get_first_BL_no_from_edi_info(total_sheet_df,edi_df):
     return total_sheet_df
 
 
-def check_equal_df(cur_df,tot_df):
+def check_equal_df(cur_df,tot_gen_drop_df,tot_df,sheet_name):
     cur_cols = list(cur_df.columns)
     not_include_df = pd.DataFrame(columns=cur_cols)
+    modify_info = {}
 
     for idx,cols in cur_df.iterrows():
         chassino_cur = cols.CHASSINO
-        sheet_cur = cols.SHEET
-
-        cur_temp_df = cur_df.copy().loc[(cur_df['CHASSINO'] == chassino_cur),:]
-        include_df = tot_df.copy().loc[(tot_df['CHASSINO'] == chassino_cur),:]
-        
+                
+        cur_chassino_df = cur_df.copy().loc[(cur_df['CHASSINO'] == chassino_cur),:]
+        include_df = tot_gen_drop_df.copy().loc[(tot_gen_drop_df['CHASSINO'] == chassino_cur),:]
+            
         if include_df.empty:
-            not_include_df = pd.concat([not_include_df,cur_temp_df]).set_index('YR').reset_index()
+            not_include_df = pd.concat([not_include_df,cur_chassino_df]).set_index('YR').reset_index()
         else:
             include_rst_idx_df = include_df.copy().set_index('YR').reset_index()
-            cur_temp_rst_idx_df = cur_temp_df.copy().set_index('YR').reset_index()
+            cur_temp_rst_idx_df = cur_chassino_df.copy().set_index('YR').reset_index()
             include_rst_idx_df = include_rst_idx_df[cur_cols]
 
             is_equal = cur_temp_rst_idx_df.equals(include_rst_idx_df)
             if is_equal:
                 pass
             else:
-                err_dict = {1:(sheet_cur,chassino_cur,'CHASSINO_DUPLICATE_ERROR')}
-                call_error_message_chassino_duplicate_error(err_dict)
-
-    return not_include_df.empty,not_include_df
+                modify_info = call_modify_message_input_detail(cur_chassino_df,include_df,sheet_name)
+                
+                btnVal,modify_df = modify_info
+                
+                if btnVal:
+                    tot_df.update(modify_df)
+                
+    return not_include_df.empty,not_include_df,tot_df
         
 
-def _check_include_df(cur_df,tot_df,gen_time):
+def _check_include_df(cur_df,tot_df,gen_time,sheet_name):
     cur_df = cur_df.set_index('YR').reset_index()
     cur_df = cur_df.copy().drop(columns=['gen_time'])
-    tot_df = tot_df.copy().drop(columns=['gen_time'])
-    
-    cols = list(cur_df.columns)
+    tot_gen_drop_df = tot_df.copy().drop(columns=['gen_time'])
 
     cur_df = cur_df.astype(str)
-    tot_df = tot_df.astype(str)
+    tot_gen_drop_df = tot_gen_drop_df.astype(str)
 
-    is_all_include,sub_df = check_equal_df(cur_df,tot_df)
+    is_all_include,sub_df,tot_df = check_equal_df(cur_df,tot_gen_drop_df,tot_df,sheet_name)
     sub_df['gen_time'] = gen_time
     
-    return is_all_include,sub_df
+    return is_all_include,sub_df,tot_df
 
 @_excel_decorator
 def _excel_write(tot_excel_from_mail,_result_dict,gen_time):
-
     if _result_dict:
         for _sheet,_car_df in tqdm(_result_dict.items()):
             _car_df['gen_time'] = gen_time
@@ -292,7 +294,7 @@ def _excel_write(tot_excel_from_mail,_result_dict,gen_time):
                 cols = _car_df.columns
                 tot_sub_car_df = pd.DataFrame(columns=cols)
     
-            _is_include_car,sub_car_df = _check_include_df(_car_df,tot_sub_car_df,gen_time)
+            _is_include_car,sub_car_df,tot_sub_car_df = _check_include_df(_car_df,tot_sub_car_df,gen_time,_sheet)
             
             if _is_include_car:
                 pass
@@ -305,21 +307,19 @@ def _excel_write(tot_excel_from_mail,_result_dict,gen_time):
 def _excel_total_sheet_update(edi_df,tot_excel_from_mail,one_result_dict,mul_result_dict,gen_time):
     tot_mail_sheet = Config().total_mail_sheet_name
     total_sheet_df = pd.read_excel(tot_excel_from_mail,sheet_name=tot_mail_sheet)
-    # total_sheet_df = total_sheet_df.drop(columns=['EDI_NO','H_BL_NO','WEIGHT','CBM'])
+    btnVal = False
 
     if one_result_dict:
         for _sheet,_car_df in tqdm(one_result_dict.items()):
             _car_df['gen_time'] = gen_time
             _car_df['SHEET'] = _sheet
-            _is_include_car,sub_car_df = _check_include_df(_car_df,total_sheet_df,gen_time)
-            
+            _is_include_car,sub_car_df,total_sheet_df = _check_include_df(_car_df,total_sheet_df,gen_time,tot_mail_sheet)
             if _is_include_car:
                 pass
             else:
                 sub_edi_df = _get_BL_no_from_edi_info(total_sheet_df,sub_car_df,edi_df)
                 total_sheet_df = pd.concat([total_sheet_df,sub_edi_df]).set_index('YR').reset_index()
                 total_macro_format_df = _get_one_car_macro_form(total_sheet_df)
-
                 _write_or_update_excel(tot_excel_from_mail,tot_mail_sheet,total_sheet_df)
                 _write_or_update_excel(tot_excel_from_mail,Config().total_macro_sheet,total_macro_format_df)
 
@@ -328,7 +328,7 @@ def _excel_total_sheet_update(edi_df,tot_excel_from_mail,one_result_dict,mul_res
             _car_df['gen_time'] = gen_time
             _car_df['SHEET'] = _sheet
 
-            _is_include_car,sub_car_df = _check_include_df(_car_df,total_sheet_df,gen_time)
+            _is_include_car,sub_car_df,total_sheet_df = _check_include_df(_car_df,total_sheet_df,gen_time,tot_mail_sheet)
 
             if _is_include_car:
                 pass
@@ -352,7 +352,6 @@ def _total_excel_update(one_result_dict,mul_result_dict):
         _excel_total_sheet_update(edi_df,tot_excel_from_mail,one_result_dict,mul_result_dict,gen_time)
         _excel_write(tot_excel_from_mail,one_result_dict,gen_time)
         _excel_write(tot_excel_from_mail,mul_result_dict,gen_time)
-
     else:
         print('NEW Total mail file generation started!')
         total_sheet_df = pd.DataFrame()

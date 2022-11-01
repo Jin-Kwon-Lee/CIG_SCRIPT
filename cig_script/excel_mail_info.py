@@ -272,7 +272,13 @@ def check_equal_df(cur_df,tot_gen_drop_df,tot_df,sheet_name):
                 btnVal,modify_df = modify_info
                 
                 if btnVal:
+                    tot_col = tot_df.columns
+                    tot_df = tot_df.set_index('CHASSINO')
+                    modify_df = modify_df.set_index('CHASSINO')
                     tot_df.update(modify_df)
+                    tot_df = tot_df.reset_index()
+                    modify_df = modify_df.reset_index()
+                    tot_df = tot_df[tot_col]
                 
     return not_include_df.empty,not_include_df,tot_df
         

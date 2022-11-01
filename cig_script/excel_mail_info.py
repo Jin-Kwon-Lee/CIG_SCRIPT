@@ -65,12 +65,14 @@ def _get_BL_no_from_edi_info(tot_df,sub_car_df,edi_df):
         pass
     else:
         edi_no_list = edi_df['EDI NO.'].dropna().drop_duplicates().values
+        f_p = re.compile("\w+F\d+")
+        edi_f_list = list(filter(f_p.match,edi_no_list))
         _h_bl_no = 0
 
         tot_h_bl_list = tot_df.H_BL_NO.tolist()
         tot_h_bl_wo_edi_list = list(set(tot_h_bl_list) - set(edi_no_list))
-        tot_edi_list = tot_df.EDI_NO.drop_duplicates().tolist()
-        missed_edi_list = list(set(tot_edi_list) - set(tot_h_bl_list))
+
+        missed_edi_list = list(set(edi_f_list) - set(tot_h_bl_list))
     
         for row in sub_car_df.CHASSINO.iteritems():
             idx,val = row
@@ -131,7 +133,12 @@ def _get_BL_no_from_edi_info(tot_df,sub_car_df,edi_df):
             else:
                 if edi_no in missed_edi_list:
                     missed_edi_list = sorted(missed_edi_list)
-                    miss_edi = missed_edi_list.pop(0)
+                    miss_edi = edi_no
+                    missed_edi_list = missed_edi_list.remove(edi_no)
+
+                    if missed_edi_list is None:
+                        missed_edi_list = ['']
+
                     _h_bl_no = miss_edi
                 else: 
                     if not max_h_bl in edi_no_list:

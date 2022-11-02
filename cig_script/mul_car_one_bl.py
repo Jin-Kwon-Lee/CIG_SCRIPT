@@ -1,9 +1,10 @@
+from audioop import mul
 import pandas as pd
 import numpy as np
 import json
-
+import re
 from tqdm import tqdm
-from time import sleep
+
 
 from common_mail_script import _remove_NBSP_df
 from common_mail_script import _reset_index
@@ -60,25 +61,45 @@ def _get_mul_car_shipper_info(df):
 
     return ship_dict
 
-def _merge_mul_car_info(total_df,df,cnt):
+def _merge_mul_car_info(total_df,df,cnt,mul_sheet):
     model_dict = {}
     year_dict = {}
     chassino_dict = {}
     model_tot_dict = {}
     year_tot_dict = {}
     chassino_tot_dict = {}
-    # car_cnt_dict = {}
 
     car_cnt = 0
     for idx,col in df.iterrows():
+        row = col.name + 1
         car_cnt = car_cnt + 1
         
         model = col[0]
         year = col[1]
         chassino = col[2]
         
+        model_cond = bool(re.search('\w+$',model))
+        yr_cond = bool(re.search('\d+',str(year)))
+        chassino_cond = bool(re.search('\w+',chassino))
+        
+        if model_cond == False:
+            idx = 1
+            err_dict = {1:(row,mul_sheet,'MUL_MODEL_ERROR')}
+            call_error_message_mail_con_acid_empty(err_dict)
+        
+        if yr_cond == False:
+            idx = 1
+            err_dict = {1:(row,mul_sheet,'MUL_YEAR_ERROR')}
+            call_error_message_mail_con_acid_empty(err_dict)
+        
+        if chassino_cond == False:
+            idx = 1
+            err_dict = {1:(row,mul_sheet,'MUL_CHASSINO_ERROR')}
+            call_error_message_mail_con_acid_empty(err_dict)
+
+
         model_dict.update({car_cnt:model})
-        year_dict.update({car_cnt:year})
+        year_dict.update({car_cnt:int(year)})
         chassino_dict.update({car_cnt:chassino})
 
     model = json.dumps(model_dict)
@@ -102,7 +123,7 @@ def _merge_mul_car_info(total_df,df,cnt):
     return total_df
 
 
-def _get_mul_car_info_df(df):
+def _get_mul_car_info_df(df,mul_sheet):
 
     second_col_df = df.loc[:,[1]]
 
@@ -130,7 +151,7 @@ def _get_mul_car_info_df(df):
                 end_idx = idx
                 sub_df = df.iloc[start_idx:end_idx,:]
                 start_idx = init_idx
-                total_info_df = _merge_mul_car_info(total_info_df,sub_df,car_info_cnt)
+                total_info_df = _merge_mul_car_info(total_info_df,sub_df,car_info_cnt,mul_sheet)
         
     return total_info_df
 
@@ -155,15 +176,7 @@ def _get_mul_con_list(df,con_start_idx,con_end_idx):
     
     for idx,row in con_info_df.iterrows():
         con_list.append(row[0])
-        # if 'ID NO' in row[0]:
-        #     id_tel_list.append(row[0])
-        # elif 'TEL' in row[0]:
-        #     id_tel_list.append(row[0])
-        # else:
-        #     con_list.append(row[0])
 
-    # id_tel_list = ' / '.join(id_tel_list)
-    # con_list.append(id_tel_list)
     con_list = '\n'.join(con_list)
 
     return con_list
@@ -226,7 +239,7 @@ def _get_mul_car_consignee_info(df,mul_sheet):
         call_error_message_mail_con_acid_empty(err_dict)
     else:
         # multi car info extract
-        car_info_df = _get_mul_car_info_df(df)
+        car_info_df = _get_mul_car_info_df(df,mul_sheet)
         total_df = _merge_df_mul_description_info(con_df,acid_df,import_tax_df,export_num_df,car_info_df)
     
     return total_df

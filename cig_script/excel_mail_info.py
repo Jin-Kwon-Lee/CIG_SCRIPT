@@ -4,6 +4,7 @@ import numpy as np
 import re
 import json
 
+
 from tqdm import tqdm
 from datetime import datetime
 
@@ -18,6 +19,7 @@ from check_valid_data import call_modify_message_input_detail
 # from cig_script.common_mail_script import _reset_index
 # from cig_script.one_car_one_bl import _get_one_car_macro_form
 
+pd.set_option('display.max_columns',None)
 
 def _excel_decorator(func):
     def wrapper(*args, **kargs):
@@ -65,14 +67,14 @@ def _get_BL_no_from_edi_info(tot_df,sub_car_df,edi_df):
         pass
     else:
         edi_no_list = edi_df['EDI NO.'].dropna().drop_duplicates().values
-        f_p = re.compile("\w+F\d+")
-        edi_f_list = list(filter(f_p.match,edi_no_list))
+        # f_p = re.compile("\w+F\d+")
+        # edi_f_list = list(filter(f_p.match,edi_no_list))
         _h_bl_no = 0
 
         tot_h_bl_list = tot_df.H_BL_NO.tolist()
         tot_h_bl_wo_edi_list = list(set(tot_h_bl_list) - set(edi_no_list))
 
-        missed_edi_list = list(set(edi_f_list) - set(tot_h_bl_list))
+        missed_edi_list = list(set(edi_no_list) - set(tot_h_bl_list))
     
         for row in sub_car_df.CHASSINO.iteritems():
             idx,val = row
@@ -249,28 +251,31 @@ def check_equal_df(cur_df,tot_gen_drop_df,tot_df,sheet_name):
     cur_cols = list(cur_df.columns)
     not_include_df = pd.DataFrame(columns=cur_cols)
     modify_info = {}
+    btnVal = False
 
     for idx,cols in cur_df.iterrows():
         chassino_cur = cols.CHASSINO
                 
         cur_chassino_df = cur_df.copy().loc[(cur_df['CHASSINO'] == chassino_cur),:]
         include_df = tot_gen_drop_df.copy().loc[(tot_gen_drop_df['CHASSINO'] == chassino_cur),:]
-            
-        if include_df.empty:
+        
+        
+        if include_df.empty: #chassino기준으로 tot_df에 matching되지 않는 경우
             not_include_df = pd.concat([not_include_df,cur_chassino_df]).set_index('YR').reset_index()
-        else:
+        else: 
             include_rst_idx_df = include_df.copy().set_index('YR').reset_index()
             cur_temp_rst_idx_df = cur_chassino_df.copy().set_index('YR').reset_index()
             include_rst_idx_df = include_rst_idx_df[cur_cols]
-
+            
             is_equal = cur_temp_rst_idx_df.equals(include_rst_idx_df)
+
             if is_equal:
                 pass
             else:
                 modify_info = call_modify_message_input_detail(cur_chassino_df,include_df,sheet_name)
                 
                 btnVal,modify_df = modify_info
-                
+
                 if btnVal:
                     tot_col = tot_df.columns
                     tot_df = tot_df.set_index('CHASSINO')
@@ -279,8 +284,8 @@ def check_equal_df(cur_df,tot_gen_drop_df,tot_df,sheet_name):
                     tot_df = tot_df.reset_index()
                     modify_df = modify_df.reset_index()
                     tot_df = tot_df[tot_col]
-                
-    return not_include_df.empty,not_include_df,tot_df
+
+    return not_include_df.empty,not_include_df,btnVal,tot_df
         
 
 def _check_include_df(cur_df,tot_df,gen_time,sheet_name):
@@ -291,10 +296,10 @@ def _check_include_df(cur_df,tot_df,gen_time,sheet_name):
     cur_df = cur_df.astype(str)
     tot_gen_drop_df = tot_gen_drop_df.astype(str)
 
-    is_all_include,sub_df,tot_df = check_equal_df(cur_df,tot_gen_drop_df,tot_df,sheet_name)
+    is_all_include,sub_df,btnVal,tot_df = check_equal_df(cur_df,tot_gen_drop_df,tot_df,sheet_name)
     sub_df['gen_time'] = gen_time
     
-    return is_all_include,sub_df,tot_df
+    return is_all_include,sub_df,btnVal,tot_df
 
 @_excel_decorator
 def _excel_write(tot_excel_from_mail,_result_dict,gen_time):
@@ -307,12 +312,25 @@ def _excel_write(tot_excel_from_mail,_result_dict,gen_time):
                 cols = _car_df.columns
                 tot_sub_car_df = pd.DataFrame(columns=cols)
     
-            _is_include_car,sub_car_df,tot_sub_car_df = _check_include_df(_car_df,tot_sub_car_df,gen_time,_sheet)
-            
-            if _is_include_car:
+            _is_include_car,sub_car_df,btnVal,tot_sub_car_df = _check_include_df(_car_df,tot_sub_car_df,gen_time,_sheet)
+            # print(' ')
+            # print(_sheet)
+            # print(_is_include_car)
+            # print(tot_sub_car_df)
+            # # print(sub_car_df)
+            # print(' ')
+
+            #1. 해당 sheet total에 모두 있는 detail이면서, update detail X --> excel update X
+            #2. 해당 sheet total에 모두 있는 detail이면서, update detail O --> excel update O
+            #3. 해당 sheet total에 없는 detail이 있고, update detail X --> excel update O
+            #4. 해당 sheet total에 없는 detail이 있고, update detail O --> excel update O
+
+            if _is_include_car & (btnVal == False): #1
                 pass
-            else:
-                tot_sub_car_df = pd.concat([tot_sub_car_df,sub_car_df]).set_index('YR').reset_index()
+            else: 
+                if _is_include_car == False: #3,4
+                    tot_sub_car_df = pd.concat([tot_sub_car_df,sub_car_df]).set_index('YR').reset_index()
+
                 _write_or_update_excel(tot_excel_from_mail,_sheet,tot_sub_car_df)
 
 
@@ -326,8 +344,9 @@ def _excel_total_sheet_update(edi_df,tot_excel_from_mail,one_result_dict,mul_res
         for _sheet,_car_df in tqdm(one_result_dict.items()):
             _car_df['gen_time'] = gen_time
             _car_df['SHEET'] = _sheet
-            _is_include_car,sub_car_df,total_sheet_df = _check_include_df(_car_df,total_sheet_df,gen_time,tot_mail_sheet)
-            if _is_include_car:
+            _is_include_car,sub_car_df,btnVal,total_sheet_df = _check_include_df(_car_df,total_sheet_df,gen_time,tot_mail_sheet)
+            
+            if _is_include_car & (btnVal == False): #1
                 pass
             else:
                 sub_edi_df = _get_BL_no_from_edi_info(total_sheet_df,sub_car_df,edi_df)
@@ -341,9 +360,12 @@ def _excel_total_sheet_update(edi_df,tot_excel_from_mail,one_result_dict,mul_res
             _car_df['gen_time'] = gen_time
             _car_df['SHEET'] = _sheet
 
-            _is_include_car,sub_car_df,total_sheet_df = _check_include_df(_car_df,total_sheet_df,gen_time,tot_mail_sheet)
-
-            if _is_include_car:
+            _is_include_car,sub_car_df,btnVal,total_sheet_df = _check_include_df(_car_df,total_sheet_df,gen_time,tot_mail_sheet)
+            
+            print(_sheet)
+            print(_is_include_car)
+            
+            if _is_include_car & (btnVal == False): #1
                 pass
             else:
                 sub_edi_df = _get_BL_no_from_edi_info(total_sheet_df,sub_car_df,edi_df)

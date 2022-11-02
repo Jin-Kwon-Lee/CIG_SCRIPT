@@ -582,69 +582,6 @@ def _find_err_info_loc(err_dict):
     return loc_dict
 
 
-def check_valid_df(df):
-    if _check_if_empty_df(df):
-        warn_empty_df()
-    else:
-        _check_error_col(df)
-
-def call_fail_message(out_xl_df,*fail):
-    find_w_loc_dict,find_c_loc_dict,find_p_loc_dict = {},{},{}
-    
-    find_w_loc_dict,find_c_loc_dict,find_p_loc_dict = _find_fail_loc_out(out_xl_df,fail)
-    
-    window = _gen_error_win()
-    _out_total_weight_or_cbm_error_default_labeling(window)
-    _call_error_in_out_value_message_window(window,find_w_loc_dict,find_c_loc_dict,find_p_loc_dict)
-    exit()
-    
-def call_error_message_from_cargo(err_dict):
-    loc_dict = {}
-    loc_dict = _find_err_info_loc(err_dict)
-    
-    window = _gen_error_win()
-    _ERROR_CARGO_default_labeling(window)
-    _call_cargo_error_message_window(window,loc_dict)
-    exit()
-
-def call_error_message_compare_cargo_and_total(err_dict):
-    loc_dict = {}
-    loc_dict = _find_err_info_loc(err_dict)
-    
-    window = _gen_error_win()
-    _ERROR_compare_default_labeling(window)
-    _call_cargo_error_message_window(window,loc_dict)
-    exit()
-
-
-def call_error_message_mail_con_acid_empty(err_dict):
-    loc_dict = {}
-    loc_dict = _find_err_info_loc(err_dict)
-    
-    window = _gen_error_win()
-    _ERROR_mail_con_acid_empty_default_labeling(window)
-    _call_error_input_con_acid_empty_message_window(window,loc_dict)
-    exit()
-
-def call_error_message_edi_error(err_dict):
-    loc_dict = {}
-    loc_dict = _find_err_info_loc(err_dict)
-    
-    window = _gen_error_win()
-    _ERROR_mail_edi_error_default_labeling(window)
-    _call_error_edi_error_message_window(window,loc_dict)
-    exit()
-
-
-def call_error_message_chassino_duplicate_error(err_dict):
-    loc_dict = {}
-    loc_dict = _find_err_info_loc(err_dict)
-    
-    window = _gen_error_win()
-    _ERROR_mail_chassino_dup_error_default_labeling(window)
-    _call_error_chassino_dup_error_message_window(window,loc_dict)
-    exit()
-
 
 def _NOTICE_mail_default_labeling(window):
     lb_nt_msg1 = Label(window, text="The left side info comes from input mail excel")
@@ -802,6 +739,69 @@ def _call_modify_msesage_window(window,cur_df,include_df,sheet_name):
     modify_info = (btnVal,cur_df)
 
     return modify_info
+
+
+def check_valid_df(df):
+    if _check_if_empty_df(df):
+        warn_empty_df()
+    else:
+        _check_error_col(df)
+
+def call_fail_message(out_xl_df,*fail):
+    find_w_loc_dict,find_c_loc_dict,find_p_loc_dict = {},{},{}
+    
+    find_w_loc_dict,find_c_loc_dict,find_p_loc_dict = _find_fail_loc_out(out_xl_df,fail)
+    
+    window = _gen_error_win()
+    _out_total_weight_or_cbm_error_default_labeling(window)
+    _call_error_in_out_value_message_window(window,find_w_loc_dict,find_c_loc_dict,find_p_loc_dict)
+    exit()
+    
+def call_error_message_from_cargo(err_dict):
+    loc_dict = {}
+    loc_dict = _find_err_info_loc(err_dict)
+    
+    window = _gen_error_win()
+    _ERROR_CARGO_default_labeling(window)
+    _call_cargo_error_message_window(window,loc_dict)
+    exit()
+
+def call_error_message_compare_cargo_and_total(err_dict):
+    loc_dict = {}
+    loc_dict = _find_err_info_loc(err_dict)
+    
+    window = _gen_error_win()
+    _ERROR_compare_default_labeling(window)
+    _call_cargo_error_message_window(window,loc_dict)
+    exit()
+
+def call_error_message_mail_con_acid_empty(err_dict):
+    loc_dict = {}
+    loc_dict = _find_err_info_loc(err_dict)
+    
+    window = _gen_error_win()
+    _ERROR_mail_con_acid_empty_default_labeling(window)
+    _call_error_input_con_acid_empty_message_window(window,loc_dict)
+    exit()
+
+def call_error_message_edi_error(err_dict):
+    loc_dict = {}
+    loc_dict = _find_err_info_loc(err_dict)
+    
+    window = _gen_error_win()
+    _ERROR_mail_edi_error_default_labeling(window)
+    _call_error_edi_error_message_window(window,loc_dict)
+    exit()
+
+
+def call_error_message_chassino_duplicate_error(err_dict):
+    loc_dict = {}
+    loc_dict = _find_err_info_loc(err_dict)
+    
+    window = _gen_error_win()
+    _ERROR_mail_chassino_dup_error_default_labeling(window)
+    _call_error_chassino_dup_error_message_window(window,loc_dict)
+    exit()
 
 def call_modify_message_input_detail(cur_df,include_df,sheet_name): 
     window = _gen_notice_win()

@@ -46,7 +46,7 @@ def _get_one_car_macro_form(df):
         chassino = cols.CHASSINO
         
         model_yr_chassino_list.append(model)
-        model_yr_chassino_list.append(year)
+        model_yr_chassino_list.append(str(year))
         model_yr_chassino_list.append(chassino)
         
         model_yr_chassino = ' '.join(model_yr_chassino_list)
